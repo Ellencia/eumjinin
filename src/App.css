@@ -91,7 +91,13 @@ a { text-decoration: none; color: inherit; }
 
 .desktop-menu-center {
   flex: 1;
-  justify-content: space-evenly;
+}
+
+/* nav 항목이 flex:1로 균등 분배 → 컬럼과 동일한 중심점 */
+.desktop-menu-center > .nav-item {
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .desktop-menu-right {
@@ -153,21 +159,20 @@ a { text-decoration: none; color: inherit; }
 }
 
 .mega-menu-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  /* 로고(160px)부터 우측메뉴(230px) 직전까지 — nav 중앙 영역과 일치 */
-  padding: 32px calc(24px + 230px) 32px calc(24px + 160px);
+  /* navbar-inner와 동일한 구조: 로고(160px) + 24px 패딩 왼쪽, 우측메뉴(230px) + 24px 패딩 오른쪽 */
+  padding: 32px calc(230px + 24px) 32px calc(160px + 24px);
   display: flex;
   justify-content: space-evenly;
 }
 
 .mega-column {
   flex: 1;
-  padding: 0 32px;
-  border-right: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid #e5e7eb;
 }
-.mega-column:first-child { padding-left: 0; }
-.mega-column:last-child  { border-right: none; padding-right: 0; }
+.mega-column:last-child { border-right: none; }
 
 .mega-column-title {
   font-size: 0.8rem;
@@ -183,15 +188,34 @@ a { text-decoration: none; color: inherit; }
 .mega-column-list { list-style: none; }
 
 .mega-link {
-  display: block;
+  display: inline-block;
   padding: 10px 0;
   font-size: 0.93rem;
   color: #374151;
-  border-bottom: 1px solid #f9fafb;
   text-align: center;
-  transition: color 0.15s;
+  position: relative;
+  transition: color 0.2s;
+}
+.mega-link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 0;
+  height: 1.5px;
+  background: #7c3aed;
+  transition: width 0.25s ease, left 0.25s ease;
 }
 .mega-link:hover { color: #7c3aed; }
+.mega-link:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+.mega-column-list li {
+  text-align: center;
+  border-bottom: 1px solid #f9fafb;
+}
 
 /* 오버레이 */
 .mega-overlay {

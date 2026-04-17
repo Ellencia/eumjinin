@@ -15,10 +15,22 @@ const NAV_ITEMS = [
     dropdown: [
       { label: '공간 안내',  href: '/spaces' },
       { label: '자료실',     href: '/community/archive' },
-      { label: '자유게시판', href: '/community/board' },
-      { label: 'Q&A',        href: '/community/qna' },
     ],
   },
+  {
+    label: '커뮤니티',
+    dropdown: [
+      { label: '자유게시판', href: '/community/board' },
+      { label: 'Q&A', href: '/community/qna' },
+    ],
+  },
+  {
+    label: '프로젝트',
+    dropdown: [
+      { label: '프로젝트 연혁', href: '/projects/overview' },
+      { label: '진행 중 프로젝트', href: '/projects/ongoing' },
+    ],
+  }
 ];
 
 const RIGHT_ITEMS = [
@@ -97,6 +109,7 @@ function Navbar() {
               <div
                 key={item.label}
                 className={`mega-column ${activeMenu === item.label ? 'mega-column-active' : ''}`}
+                onMouseEnter={() => setActiveMenu(item.label)}
               >
                 <p className="mega-column-title">{item.label}</p>
                 <ul className="mega-column-list">
