@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/harmonia/static/css/main.32293592.css",
-    "main.js": "/harmonia/static/js/main.bffcf450.js",
+    "main.css": "/harmonia/static/css/main.2a0c5086.css",
+    "main.js": "/harmonia/static/js/main.fa058b94.js",
     "static/js/453.fafa328a.chunk.js": "/harmonia/static/js/453.fafa328a.chunk.js",
     "index.html": "/harmonia/index.html",
-    "main.32293592.css.map": "/harmonia/static/css/main.32293592.css.map",
-    "main.bffcf450.js.map": "/harmonia/static/js/main.bffcf450.js.map",
+    "main.2a0c5086.css.map": "/harmonia/static/css/main.2a0c5086.css.map",
+    "main.fa058b94.js.map": "/harmonia/static/js/main.fa058b94.js.map",
     "453.fafa328a.chunk.js.map": "/harmonia/static/js/453.fafa328a.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.32293592.css",
-    "static/js/main.bffcf450.js"
+    "static/css/main.2a0c5086.css",
+    "static/js/main.fa058b94.js"
   ]
 }
