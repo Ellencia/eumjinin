@@ -94,9 +94,16 @@ function Navbar() {
           🎵 Harmonia
         </Link>
 
-        {/* 데스크톱 메뉴 */}
-        <ul className="navbar-menu desktop-menu">
-          {NAV_ITEMS.map((item) => (
+        {/* 데스크톱 중앙 메뉴 (소개, 공간) */}
+        <ul className="desktop-menu desktop-menu-center">
+          {NAV_ITEMS.filter((item) => !item.highlight).map((item) => (
+            <DropdownItem key={item.label} item={item} onClose={close} />
+          ))}
+        </ul>
+
+        {/* 데스크톱 우측 메뉴 (연습실 예약, 멤버 신청) */}
+        <ul className="desktop-menu desktop-menu-right">
+          {NAV_ITEMS.filter((item) => item.highlight).map((item) => (
             <DropdownItem key={item.label} item={item} onClose={close} />
           ))}
           <li>
