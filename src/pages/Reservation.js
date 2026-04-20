@@ -12,7 +12,7 @@ function Reservation() {
           <Link to="/" className="back-link">← 홈으로</Link>
           <h1 className="section-title">연습실 예약</h1>
           <p className="section-sub">
-            Harmonia의 연습 공간을 자유롭게 예약하세요.<br />
+            音眞人의 연습 공간을 자유롭게 예약하세요.<br />
             멤버라면 누구나 이용할 수 있습니다.
           </p>
         </div>

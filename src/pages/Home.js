@@ -1,3 +1,46 @@
+import { useState, useEffect, useRef } from 'react';
+
+function useCountUp(target, duration = 1800) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
+      { threshold: 0.5 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!started) return;
+    let startTime = null;
+    const step = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setCount(Math.floor(eased * target));
+      if (progress < 1) requestAnimationFrame(step);
+      else setCount(target);
+    };
+    requestAnimationFrame(step);
+  }, [started, target, duration]);
+
+  return { count, ref };
+}
+
+function AnimatedStat({ target, suffix, label }) {
+  const { count, ref } = useCountUp(target);
+  return (
+    <div className="stat" ref={ref}>
+      <span className="stat-num">{count}{suffix}</span>
+      <span className="stat-label">{label}</span>
+    </div>
+  );
+}
+
 function Home() {
   return (
     <section className="hero" id="home">
@@ -16,14 +59,8 @@ function Home() {
         </div>
       </div>
       <div className="hero-stats">
-        <div className="stat">
-          <span className="stat-num">2+</span>
-          <span className="stat-label">공연 무대</span>
-        </div>
-        <div className="stat">
-          <span className="stat-num">3+</span>
-          <span className="stat-label">연습 공간</span>
-        </div>
+        <AnimatedStat target={100} suffix="+" label="소속 밴드 수" />
+        <AnimatedStat target={3} suffix="+" label="연습 공간" />
         <div className="stat">
           <span className="stat-num">∞</span>
           <span className="stat-label">음악의 가능성</span>

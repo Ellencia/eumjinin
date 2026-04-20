@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 const NAV_ITEMS = [
@@ -43,6 +43,24 @@ function Navbar() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      setScrolled(currentY > 10);
+      if (currentY > lastScrollY.current && currentY > 80) {
+        setHidden(true);
+      } else {
+        setHidden(false);
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const megaOpen = activeMenu !== null;
 
@@ -59,12 +77,12 @@ function Navbar() {
         <div className="mega-overlay" onMouseEnter={() => setActiveMenu(null)} />
       )}
 
-      <nav className="navbar" onMouseLeave={() => setActiveMenu(null)}>
+      <nav className={`navbar${scrolled ? ' navbar-scrolled' : ''}${hidden ? ' navbar-hidden' : ''}`} onMouseLeave={() => setActiveMenu(null)}>
         <div className="navbar-inner">
 
           {/* 로고 */}
           <Link to="/" className="navbar-logo" onClick={closeAll}>
-            🎵 음진인
+            🎵 音眞人
           </Link>
 
           {/* 데스크톱 중앙 메뉴 */}
