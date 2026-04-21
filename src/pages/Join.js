@@ -1,15 +1,60 @@
-import { useState } from 'react';
+import { useState, useRef, useMemo } from 'react';
 
 const GENRES = ['팝', '록', '재즈', 'R&B', '클래식', '힙합', '인디', '기타'];
 const ROLES = ['보컬', '기타', '베이스', '드럼', '키보드/피아노', '현악기', '관악기', '작곡/편곡', '기타'];
+const CONFETTI_COLORS = ['#a78bfa', '#f472b6', '#fbbf24', '#34d399', '#60a5fa', '#f87171', '#fb923c'];
 
 const today = new Date().toISOString().split('T')[0];
+
+function getFieldError(name, value) {
+  switch (name) {
+    case 'name':
+      if (!value.trim()) return '이름을 입력해주세요.';
+      if (value.trim().length < 2) return '이름은 2자 이상이어야 합니다.';
+      return '';
+    case 'email':
+      if (!value.trim()) return '이메일을 입력해주세요.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) return '올바른 이메일 형식이 아닙니다.';
+      return '';
+    case 'phone':
+      if (!value) return '연락처를 입력해주세요.';
+      if (!/^\d{3}-\d{3,4}-\d{4}$/.test(value)) return '전화번호 형식이 올바르지 않습니다. (예: 010-0000-0000)';
+      return '';
+    default:
+      return '';
+  }
+}
 
 function formatPhone(value) {
   const digits = value.replace(/\D/g, '').slice(0, 11);
   if (digits.length <= 3) return digits;
   if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+function Confetti() {
+  const pieces = useMemo(() =>
+    Array.from({ length: 72 }, (_, i) => ({
+      key: i,
+      style: {
+        left: `${Math.random() * 100}%`,
+        background: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        animationDuration: `${0.9 + Math.random() * 1.4}s`,
+        animationDelay: `${Math.random() * 0.6}s`,
+        width: `${6 + Math.random() * 6}px`,
+        height: `${10 + Math.random() * 8}px`,
+        borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+        transform: `rotate(${Math.random() * 360}deg)`,
+      },
+    })), []);
+
+  return (
+    <div className="confetti-container" aria-hidden="true">
+      {pieces.map((p) => (
+        <span key={p.key} className="confetti-piece" style={p.style} />
+      ))}
+    </div>
+  );
 }
 
 function Join() {
@@ -20,6 +65,8 @@ function Join() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState({});
+  const btnRef = useRef(null);
 
   const handleChange = (e) => {
     const value = e.target.name === 'phone'
@@ -28,9 +75,36 @@ function Join() {
     setForm({ ...form, [e.target.name]: value });
   };
 
+  const handleBlur = (e) => {
+    setTouched((prev) => ({ ...prev, [e.target.name]: true }));
+  };
+
+  const fieldError = (name) => touched[name] ? getFieldError(name, form[name]) : '';
+  const fieldStatus = (name) => {
+    if (!touched[name]) return '';
+    return getFieldError(name, form[name]) ? ' input-invalid' : ' input-valid';
+  };
+
+  const handleRipple = (e) => {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const circle = document.createElement('span');
+    circle.className = 'ripple-circle';
+    circle.style.width = circle.style.height = `${size}px`;
+    circle.style.left = `${e.clientX - rect.left - size / 2}px`;
+    circle.style.top = `${e.clientY - rect.top - size / 2}px`;
+    btn.appendChild(circle);
+    circle.addEventListener('animationend', () => circle.remove());
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.phone) return;
+    // 필수 필드 전부 touched로 표시해서 에러 노출
+    const requiredFields = ['name', 'email', 'phone'];
+    setTouched((prev) => Object.fromEntries([...requiredFields.map(f => [f, true]), ...Object.entries(prev)]));
+    if (requiredFields.some(f => getFieldError(f, form[f]))) return;
     setError('');
     setLoading(true);
     try {
@@ -55,6 +129,7 @@ function Join() {
   if (submitted) {
     return (
       <section className="join" id="join">
+        <Confetti />
         <div className="section-container join-success">
           <span className="success-icon">🎉</span>
           <h2>신청이 완료됐어요!</h2>
@@ -81,15 +156,19 @@ function Join() {
               <label>이름 *</label>
               <input
                 type="text" name="name" placeholder="홍길동"
-                value={form.name} onChange={handleChange} required
+                value={form.name} onChange={handleChange} onBlur={handleBlur}
+                className={fieldStatus('name')}
               />
+              {fieldError('name') && <span className="field-error">{fieldError('name')}</span>}
             </div>
             <div className="form-group">
               <label>이메일 *</label>
               <input
                 type="email" name="email" placeholder="example@email.com"
-                value={form.email} onChange={handleChange} required
+                value={form.email} onChange={handleChange} onBlur={handleBlur}
+                className={fieldStatus('email')}
               />
+              {fieldError('email') && <span className="field-error">{fieldError('email')}</span>}
             </div>
           </div>
 
@@ -143,8 +222,10 @@ function Join() {
               <label>연락처 *</label>
               <input
                 type="tel" name="phone" placeholder="010-0000-0000"
-                value={form.phone} onChange={handleChange} required
+                value={form.phone} onChange={handleChange} onBlur={handleBlur}
+                className={fieldStatus('phone')}
               />
+              {fieldError('phone') && <span className="field-error">{fieldError('phone')}</span>}
             </div>
           </div>
 
@@ -160,7 +241,13 @@ function Join() {
           </div>
 
           {error && <p className="form-error">{error}</p>}
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+          <button
+            ref={btnRef}
+            type="submit"
+            className="btn btn-primary btn-full btn-ripple"
+            disabled={loading}
+            onClick={handleRipple}
+          >
             {loading ? '신청 중...' : '신청하기'}
           </button>
         </form>
