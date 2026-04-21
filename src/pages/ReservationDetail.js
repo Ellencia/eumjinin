@@ -10,18 +10,38 @@ const TIME_SLOTS = [
   '10:00', '11:00', '12:00', '13:00', '14:00',
   '15:00', '16:00', '17:00', '18:00', '19:00',
   '20:00', '21:00', '22:00', '23:00', '24:00',
+  '25:00', '26:00', '27:00', '28:00', '29:00',
 ];
+
+function timeToMins(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
 
 function getSlotState(slot, startTime, endTime) {
   if (slot === startTime) return 'slot-start';
   if (slot === endTime) return 'slot-end';
-  if (startTime && endTime && slot > startTime && slot < endTime) return 'slot-in-range';
+  if (startTime && endTime &&
+      timeToMins(slot) > timeToMins(startTime) &&
+      timeToMins(slot) < timeToMins(endTime)) return 'slot-in-range';
   return '';
 }
 
 function getDuration(startTime, endTime) {
   if (!startTime || !endTime) return '';
-  return `${parseInt(endTime) - parseInt(startTime)}시간`;
+  return `${(timeToMins(endTime) - timeToMins(startTime)) / 60}시간`;
+}
+
+// 25:00~29:00 슬롯을 "01:00 +1" 형태로 표시
+function SlotLabel({ slot }) {
+  const h = parseInt(slot);
+  if (h <= 24) return slot;
+  return (
+    <>
+      {String(h - 24).padStart(2, '0')}:00
+      <span className="slot-next-day">+1</span>
+    </>
+  );
 }
 
 function formatPhone(value) {
@@ -74,9 +94,22 @@ function ReservationDetail() {
   const duration = getDuration(startTime, endTime);
   const canSubmit = selectedDate && startTime && endTime && name && isValidPhone(phone);
 
-  // 슬롯이 기존 예약과 겹치는지 확인
-  const isBooked = (slot) =>
-    bookedRanges.some(r => slot >= r.startTime && slot < r.endTime);
+  const currentDateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
+
+  // 슬롯이 기존 예약과 겹치는지 확인 (자정 경계 포함)
+  const isBooked = (slot) => {
+    const slotMins = timeToMins(slot);
+    return bookedRanges.some(r => {
+      const rStart = timeToMins(r.startTime);
+      const rEnd = timeToMins(r.endTime);
+      if (r.date === currentDateStr) {
+        return slotMins >= rStart && slotMins < rEnd;
+      }
+      // 전날 예약이 자정을 넘어 오늘로 이어지는 경우
+      const overflowEnd = rEnd - 24 * 60;
+      return slotMins < overflowEnd;
+    });
+  };
 
   const handleDaySelect = (day) => {
     setSelectedDate(day);
@@ -228,7 +261,7 @@ function ReservationDetail() {
                       disabled={!selectedDate || booked}
                       title={booked ? '이미 예약된 시간' : ''}
                     >
-                      {slot}
+                      <SlotLabel slot={slot} />
                     </button>
                   );
                 })}

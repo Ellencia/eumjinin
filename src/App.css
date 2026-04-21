@@ -764,6 +764,13 @@ main { padding-top: 64px; }
 .resv-time-slot.slot-end   { background: #7c3aed; border-color: #7c3aed; color: #fff; }
 .resv-time-slot.slot-in-range { background: #ede9fe; border-color: #c4b5fd; color: #6d28d9; }
 .resv-time-slot:disabled { opacity: 0.35; cursor: not-allowed; }
+.slot-next-day {
+  display: block;
+  font-size: 0.6em;
+  color: #a78bfa;
+  line-height: 1;
+}
+
 .resv-time-slot.slot-booked { background: #f3f4f6; color: #d1d5db; text-decoration: line-through; cursor: not-allowed; border-color: #e5e7eb; }
 
 .resv-error { color: #dc2626 !important; font-weight: 600; }
