@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import { SplashContext } from '../App';
+import HeroSlider from '../components/HeroSlider';
 
 function useCountUp(target, duration = 1800) {
   const [count, setCount] = useState(0);
@@ -51,6 +52,7 @@ function Home() {
 
   return (
     <section className="hero" id="home">
+      <HeroSlider />
       <div className="hero-content">
         <p className="hero-eyebrow">🎶 Music Community & Space</p>
         <h1 className="hero-title">
@@ -58,7 +60,7 @@ function Home() {
         </h1>
         <p className="hero-desc">
           음진인은 뮤지션들이 모이고, 연습하고, 무대에 서는<br />
-          커뮤니티 기반 음악 법인입니다.
+          커뮤니티 기반 음악 모임입니다.
         </p>
         <div className="hero-actions">
           <a href="#spaces" className="btn btn-primary">공간 둘러보기</a>
