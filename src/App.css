@@ -650,9 +650,20 @@ main { padding-top: 64px; }
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.07);
   padding: 40px;
-  max-width: 720px;
+  max-width: 1000px;
   margin: 0 auto;
 }
+
+.resv-datetime-row {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.resv-date-col { flex-shrink: 0; }
+
+.resv-time-col { flex: 1; min-width: 0; }
 
 .resv-form-section { margin-bottom: 32px; }
 
@@ -663,16 +674,57 @@ main { padding-top: 64px; }
   color: #1f2937;
 }
 
-.resv-date-input {
+/* ===== DayPicker 커스텀 테마 ===== */
+.rdp-wrapper {
+  display: inline-block;
   border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 1rem;
-  width: 220px;
-  cursor: pointer;
-  transition: border-color 0.2s;
+  border-radius: 14px;
+  padding: 8px;
+  background: #fff;
 }
-.resv-date-input:focus { outline: none; border-color: #7c3aed; }
+
+.rdp-wrapper .rdp-root {
+  --rdp-accent-color: #7c3aed;
+  --rdp-accent-background-color: #ede9fe;
+  --rdp-day-height: 40px;
+  --rdp-day-width: 40px;
+  font-size: 0.92rem;
+}
+
+.rdp-wrapper .rdp-day_button {
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.rdp-wrapper .rdp-day_button:hover:not([disabled]) {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.rdp-wrapper .rdp-selected .rdp-day_button {
+  background: #7c3aed;
+  color: #fff;
+  font-weight: 700;
+}
+
+.rdp-wrapper .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: #7c3aed;
+  font-weight: 700;
+}
+
+.rdp-wrapper .rdp-disabled .rdp-day_button {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.rdp-wrapper .rdp-nav button {
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 4px 8px;
+  transition: background 0.15s;
+}
+.rdp-wrapper .rdp-nav button:hover { background: #ede9fe; }
 
 .resv-time-grid {
   display: grid;
@@ -712,6 +764,9 @@ main { padding-top: 64px; }
 .resv-time-slot.slot-end   { background: #7c3aed; border-color: #7c3aed; color: #fff; }
 .resv-time-slot.slot-in-range { background: #ede9fe; border-color: #c4b5fd; color: #6d28d9; }
 .resv-time-slot:disabled { opacity: 0.35; cursor: not-allowed; }
+.resv-time-slot.slot-booked { background: #f3f4f6; color: #d1d5db; text-decoration: line-through; cursor: not-allowed; border-color: #e5e7eb; }
+
+.resv-error { color: #dc2626 !important; font-weight: 600; }
 
 .resv-fields { display: flex; flex-direction: column; gap: 12px; }
 
@@ -755,6 +810,7 @@ main { padding-top: 64px; }
   .resv-time-grid { grid-template-columns: repeat(5, 1fr); }
   .resv-form-card { padding: 24px 16px; }
   .resv-duration-row { flex-wrap: wrap; }
+  .resv-datetime-row { flex-direction: column; }
 }
 
 /* ===== Loading Splash ===== */

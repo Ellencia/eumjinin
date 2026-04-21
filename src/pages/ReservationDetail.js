@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/style.css';
 import spaces from '../data/spaces';
 
 const TIME_SLOTS = [
@@ -19,8 +21,23 @@ function getSlotState(slot, startTime, endTime) {
 
 function getDuration(startTime, endTime) {
   if (!startTime || !endTime) return '';
-  const diff = parseInt(endTime) - parseInt(startTime);
-  return `${diff}시간`;
+  return `${parseInt(endTime) - parseInt(startTime)}시간`;
+}
+
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+function isValidPhone(value) {
+  return /^\d{2,3}-\d{3,4}-\d{4}$/.test(value);
+}
+
+function toDateStr(date) {
+  if (!date) return '';
+  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
 function ReservationDetail() {
@@ -29,31 +46,47 @@ function ReservationDetail() {
 
   const room = spaces.find((s) => s.id === parseInt(roomId));
 
-  const [date, setDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(undefined);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [submitted, setSubmitted] = useState(false);
-
-  // 나중에 백엔드 연동 시 이 useEffect에서 해당 방의 예약 현황을 fetch합니다
-  // useEffect(() => {
-  //   fetch(`/api/reservations?roomId=${roomId}&date=${date}`)
-  //     .then(res => res.json())
-  //     .then(data => setBookedSlots(data.bookedSlots));
-  // }, [roomId, date]);
+  const [bookedRanges, setBookedRanges] = useState([]);
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const today = new Date();
-  const minDate = today.toISOString().split('T')[0];
+  today.setHours(0, 0, 0, 0);
   const maxDateObj = new Date(today);
   maxDateObj.setMonth(maxDateObj.getMonth() + 2);
-  const maxDate = maxDateObj.toISOString().split('T')[0];
+
+  // 날짜 선택 시 해당 방·날짜의 기존 예약 fetch
+  useEffect(() => {
+    if (!selectedDate) return;
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    fetch(`http://localhost:3001/api/reservations?roomId=${roomId}&date=${dateStr}`)
+      .then(res => res.json())
+      .then(data => setBookedRanges(data))
+      .catch(() => setBookedRanges([]));
+  }, [roomId, selectedDate]);
 
   const duration = getDuration(startTime, endTime);
-  const canSubmit = date && startTime && endTime && name && phone;
+  const canSubmit = selectedDate && startTime && endTime && name && isValidPhone(phone);
+
+  // 슬롯이 기존 예약과 겹치는지 확인
+  const isBooked = (slot) =>
+    bookedRanges.some(r => slot >= r.startTime && slot < r.endTime);
+
+  const handleDaySelect = (day) => {
+    setSelectedDate(day);
+    setStartTime('');
+    setEndTime('');
+    setSubmitError('');
+  };
 
   const handleSlotClick = (slot) => {
-    if (!date) return;
+    if (!selectedDate || isBooked(slot)) return;
     if (!startTime || (startTime && endTime)) {
       setStartTime(slot);
       setEndTime('');
@@ -67,7 +100,36 @@ function ReservationDetail() {
     }
   };
 
-  // 존재하지 않는 roomId면 목록으로 리다이렉트
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const res = await fetch('http://localhost:3001/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: parseInt(roomId),
+          date: selectedDate.toISOString().split('T')[0],
+          startTime,
+          endTime,
+          name,
+          phone,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        setSubmitError(data.error || '예약 중 오류가 발생했습니다.');
+      }
+    } catch {
+      setSubmitError('서버에 연결할 수 없습니다. npm run server 를 실행해주세요.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     if (!room || room.type !== 'rehearsal') {
       navigate('/reservation', { replace: true });
@@ -85,7 +147,7 @@ function ReservationDetail() {
               <div className="resv-submitted-icon">✅</div>
               <h2>신청이 접수되었습니다</h2>
               <p>
-                <strong>{room.name}</strong> · {date}<br />
+                <strong>{room.name}</strong> · {toDateStr(selectedDate)}<br />
                 {startTime} ~ {endTime} ({duration})<br />
                 담당자가 확인 후 연락드리겠습니다.
               </p>
@@ -118,54 +180,62 @@ function ReservationDetail() {
 
           <div className="resv-form-card">
 
-            {/* 날짜 선택 */}
-            <div className="resv-form-section">
-              <h3 className="resv-form-label">날짜 선택</h3>
-              <input
-                type="date"
-                className="resv-date-input"
-                value={date}
-                min={minDate}
-                max={maxDate}
-                onChange={(e) => { setDate(e.target.value); setStartTime(''); setEndTime(''); }}
-              />
-            </div>
+            {/* 날짜 + 시간 가로 배치 */}
+            <div className="resv-datetime-row">
 
-            {/* 시간 범위 선택 */}
-            <div className="resv-form-section">
-              <div className="resv-time-header">
-                <h3 className="resv-form-label">이용 시간</h3>
-                <div className="resv-time-summary">
-                  {startTime && endTime ? (
-                    <span className="resv-time-result">
-                      {startTime} ~ {endTime}
-                      <strong> · {duration}</strong>
-                    </span>
-                  ) : startTime ? (
-                    <span className="resv-time-hint-inline">종료 시간을 선택해주세요</span>
-                  ) : (
-                    <span className="resv-time-hint-inline">시작 시간을 먼저 클릭하세요</span>
-                  )}
+              {/* 날짜 선택 */}
+              <div className="resv-form-section resv-date-col">
+                <h3 className="resv-form-label">날짜 선택</h3>
+                <div className="rdp-wrapper">
+                  <DayPicker
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDaySelect}
+                    disabled={[{ before: today }, { after: maxDateObj }]}
+                    startMonth={today}
+                    endMonth={maxDateObj}
+                  />
                 </div>
               </div>
 
-              <div className={`resv-time-grid ${!date ? 'disabled' : ''}`}>
+              {/* 시간 범위 선택 */}
+              <div className="resv-form-section resv-time-col">
+                <div className="resv-time-header">
+                  <h3 className="resv-form-label">이용 시간</h3>
+                  <div className="resv-time-summary">
+                    {startTime && endTime ? (
+                      <span className="resv-time-result">
+                        {startTime} ~ {endTime}
+                        <strong> · {duration}</strong>
+                      </span>
+                    ) : startTime ? (
+                      <span className="resv-time-hint-inline">종료 시간을 선택해주세요</span>
+                    ) : (
+                      <span className="resv-time-hint-inline">시작 시간을 먼저 클릭하세요</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className={`resv-time-grid ${!selectedDate ? 'disabled' : ''}`}>
                 {TIME_SLOTS.map((slot) => {
-                  const state = getSlotState(slot, startTime, endTime);
+                  const booked = isBooked(slot);
+                  const state = booked ? 'slot-booked' : getSlotState(slot, startTime, endTime);
                   return (
                     <button
                       key={slot}
                       className={`resv-time-slot ${state}`}
                       onClick={() => handleSlotClick(slot)}
-                      disabled={!date}
+                      disabled={!selectedDate || booked}
+                      title={booked ? '이미 예약된 시간' : ''}
                     >
                       {slot}
                     </button>
                   );
                 })}
               </div>
-              {!date && <p className="resv-hint">날짜를 먼저 선택해주세요</p>}
-            </div>
+              {!selectedDate && <p className="resv-hint">날짜를 먼저 선택해주세요</p>}
+              </div>
+            </div>{/* resv-datetime-row */}
 
             {/* 예약자 정보 */}
             <div className="resv-form-section">
@@ -183,18 +253,19 @@ function ReservationDetail() {
                   type="tel"
                   placeholder="연락처 (010-0000-0000)"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
                 />
               </div>
             </div>
 
             <button
-              className={`btn btn-primary resv-submit-btn ${canSubmit ? '' : 'disabled'}`}
-              onClick={() => canSubmit && setSubmitted(true)}
+              className={`btn btn-primary resv-submit-btn ${canSubmit && !submitting ? '' : 'disabled'}`}
+              onClick={handleSubmit}
             >
-              예약 신청하기
+              {submitting ? '처리 중...' : '예약 신청하기'}
             </button>
-            {!canSubmit && <p className="resv-hint center">모든 항목을 선택·입력해주세요</p>}
+            {submitError && <p className="resv-hint center resv-error">{submitError}</p>}
+            {!canSubmit && !submitError && <p className="resv-hint center">모든 항목을 선택·입력해주세요</p>}
           </div>
         </div>
       </div>
