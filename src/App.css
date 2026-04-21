@@ -64,6 +64,7 @@ a { text-decoration: none; color: inherit; }
 .btn-outline:hover { background: rgba(255,255,255,0.1); }
 
 .btn-full { width: 100%; text-align: center; border-radius: 10px; }
+.form-error { color: #e05555; font-size: 0.875rem; margin-bottom: 0.5rem; text-align: center; }
 
 /* ===== Navbar ===== */
 .navbar {
@@ -256,6 +257,12 @@ main { padding-top: 64px; }
 }
 
 /* 멤버 신청 CTA */
+.navbar-cta, .mobile-cta {
+  cursor: pointer;
+  font-family: inherit;
+  outline: none;
+}
+
 .navbar-cta {
   display: inline-block;
   background: #7c3aed;
@@ -496,6 +503,16 @@ main { padding-top: 64px; }
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .form-row { grid-template-columns: 1fr; }
 }
 
 .form-group { display: flex; flex-direction: column; gap: 6px; }

@@ -8,6 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 const DATA_FILE = path.join(__dirname, 'data', 'reservations.json');
+const MEMBERS_FILE = path.join(__dirname, 'data', 'members.json');
 
 function readData() {
   if (!fs.existsSync(DATA_FILE)) return [];
@@ -16,6 +17,15 @@ function readData() {
 
 function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+function readMembers() {
+  if (!fs.existsSync(MEMBERS_FILE)) return [];
+  return JSON.parse(fs.readFileSync(MEMBERS_FILE, 'utf-8'));
+}
+
+function writeMembers(data) {
+  fs.writeFileSync(MEMBERS_FILE, JSON.stringify(data, null, 2));
 }
 
 // 날짜 + 시간을 절대 분(minute)으로 변환 — 자정 경계 비교에 사용
@@ -94,6 +104,42 @@ app.post('/api/reservations', (req, res) => {
   writeData(all);
 
   res.status(201).json({ success: true, reservation: newReservation });
+});
+
+// 멤버 신청
+app.post('/api/members', (req, res) => {
+  const { name, email, band, role, location, birth, genre, intro } = req.body;
+  const rawPhone = req.body.phone || '';
+
+  const digits = rawPhone.replace(/\D/g, '');
+  const phone = digits.length <= 7
+    ? digits
+    : `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+
+  if (!name || !email || !phone) {
+    return res.status(400).json({ error: '이름, 이메일, 연락처는 필수 항목입니다.' });
+  }
+
+  if (!/^\d{2,3}-\d{3,4}-\d{4}$/.test(phone)) {
+    return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
+  }
+
+  const members = readMembers();
+
+  if (members.some(m => m.phone === phone)) {
+    return res.status(409).json({ error: '이미 같은 연락처로 신청된 내역이 있습니다.' });
+  }
+
+  const newMember = {
+    id: Date.now(),
+    name, email, band, role, location, birth, genre, phone, intro,
+    createdAt: new Date().toISOString(),
+  };
+
+  members.push(newMember);
+  writeMembers(members);
+
+  res.status(201).json({ success: true, member: newMember });
 });
 
 const PORT = 3001;

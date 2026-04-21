@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import { SplashContext } from '../App';
 
 function useCountUp(target, duration = 1800) {
@@ -33,6 +34,21 @@ function AnimatedStat({ target, suffix, label }) {
 }
 
 function Home() {
+  const location = useLocation();
+
+  // 다른 페이지에서 navigate('/', { state: { scrollTo: 'join' } })로 왔을 때 스크롤
+  useEffect(() => {
+    if (location.state?.scrollTo) {
+      const el = document.getElementById(location.state.scrollTo);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [location.state]);
+
+  const scrollToJoin = (e) => {
+    e.preventDefault();
+    document.getElementById('join')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="hero" id="home">
       <div className="hero-content">
@@ -46,7 +62,7 @@ function Home() {
         </p>
         <div className="hero-actions">
           <a href="#spaces" className="btn btn-primary">공간 둘러보기</a>
-          <a href="#join" className="btn btn-outline">멤버 신청</a>
+          <a href="#join" className="btn btn-outline" onClick={scrollToJoin}>멤버 신청</a>
         </div>
       </div>
       <div className="hero-stats">

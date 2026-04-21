@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const NAV_ITEMS = [
   {
@@ -62,7 +62,13 @@ function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const navigate = useNavigate();
   const megaOpen = activeMenu !== null;
+
+  const handleJoinClick = () => {
+    closeAll();
+    navigate('/', { state: { scrollTo: 'join' } });
+  };
 
   const closeAll = () => {
     setActiveMenu(null);
@@ -108,9 +114,9 @@ function Navbar() {
               </li>
             ))}
             <li onMouseEnter={() => setActiveMenu(null)}>
-              <Link to="/#join" className="navbar-cta" onClick={closeAll}>
+              <button className="navbar-cta" onClick={handleJoinClick}>
                 멤버 신청
-              </Link>
+              </button>
             </li>
           </ul>
 
@@ -184,9 +190,9 @@ function Navbar() {
             </div>
           ))}
           <div className="mobile-item">
-            <Link to="/#join" className="mobile-cta" onClick={closeAll}>
+            <button className="mobile-cta" onClick={handleJoinClick}>
               멤버 신청
-            </Link>
+            </button>
           </div>
         </div>
       )}
