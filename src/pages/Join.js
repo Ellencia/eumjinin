@@ -1,19 +1,55 @@
 import { useState } from 'react';
 
 const GENRES = ['팝', '록', '재즈', 'R&B', '클래식', '힙합', '인디', '기타'];
+const ROLES = ['보컬', '기타', '베이스', '드럼', '키보드/피아노', '현악기', '관악기', '작곡/편곡', '기타'];
+
+const today = new Date().toISOString().split('T')[0];
+
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
 
 function Join() {
-  const [form, setForm] = useState({ name: '', email: '', genre: '', intro: '' });
+  const [form, setForm] = useState({
+    name: '', email: '', band: '', role: '',
+    location: '', birth: '', genre: '', phone: '', intro: '',
+  });
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const value = e.target.name === 'phone'
+      ? formatPhone(e.target.value)
+      : e.target.value;
+    setForm({ ...form, [e.target.name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email) return;
-    setSubmitted(true);
+    if (!form.name || !form.email || !form.phone) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:3001/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || '신청 중 오류가 발생했습니다.');
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -39,37 +75,79 @@ function Join() {
           함께 음악을 만들어갈 멤버를 기다리고 있습니다.
         </p>
         <form className="join-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>이름 *</label>
-            <input
-              type="text"
-              name="name"
-              placeholder="홍길동"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>이름 *</label>
+              <input
+                type="text" name="name" placeholder="홍길동"
+                value={form.name} onChange={handleChange} required
+              />
+            </div>
+            <div className="form-group">
+              <label>이메일 *</label>
+              <input
+                type="email" name="email" placeholder="example@email.com"
+                value={form.email} onChange={handleChange} required
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label>이메일 *</label>
-            <input
-              type="email"
-              name="email"
-              placeholder="example@email.com"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>소속 밴드명</label>
+              <input
+                type="text" name="band" placeholder="밴드 이름 (없으면 비워두세요)"
+                value={form.band} onChange={handleChange}
+              />
+            </div>
+            <div className="form-group">
+              <label>밴드 역할</label>
+              <select name="role" value={form.role} onChange={handleChange}>
+                <option value="">선택하세요</option>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="form-group">
-            <label>선호 장르</label>
-            <select name="genre" value={form.genre} onChange={handleChange}>
-              <option value="">선택하세요</option>
-              {GENRES.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>거주지</label>
+              <input
+                type="text" name="location" placeholder="예: 마포구, 홍대동"
+                value={form.location} onChange={handleChange}
+              />
+            </div>
+            <div className="form-group">
+              <label>생년월일</label>
+              <input
+                type="date" name="birth" max={today}
+                value={form.birth} onChange={handleChange}
+              />
+            </div>
           </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>선호 장르</label>
+              <select name="genre" value={form.genre} onChange={handleChange}>
+                <option value="">선택하세요</option>
+                {GENRES.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>연락처 *</label>
+              <input
+                type="tel" name="phone" placeholder="010-0000-0000"
+                value={form.phone} onChange={handleChange} required
+              />
+            </div>
+          </div>
+
           <div className="form-group">
             <label>자기소개</label>
             <textarea
@@ -80,8 +158,10 @@ function Join() {
               onChange={handleChange}
             />
           </div>
-          <button type="submit" className="btn btn-primary btn-full">
-            신청하기
+
+          {error && <p className="form-error">{error}</p>}
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+            {loading ? '신청 중...' : '신청하기'}
           </button>
         </form>
       </div>
