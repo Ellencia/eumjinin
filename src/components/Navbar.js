@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import logo from '../assets/Logo1.png';
 
 const NAV_ITEMS = [
   {
@@ -88,7 +89,7 @@ function Navbar() {
 
           {/* 로고 */}
           <Link to="/" className="navbar-logo" onClick={closeAll}>
-            🎵 音眞人
+            <img src={logo} alt="音眞人" className="navbar-logo-img" />
           </Link>
 
           {/* 데스크톱 중앙 메뉴 */}

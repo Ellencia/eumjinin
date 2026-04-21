@@ -116,9 +116,9 @@ a { text-decoration: none; color: inherit; }
   left: 0;
   right: 0;
   z-index: 200;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  background: #1a1a2e;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   transition: transform 0.35s ease, box-shadow 0.35s ease;
 }
 .navbar-hidden { transform: translateY(-100%); }
@@ -131,6 +131,12 @@ main { padding-top: 64px; }
   height: 64px;
   display: flex;
   align-items: center;
+}
+
+.navbar-logo-img {
+  height: 1.8rem;
+  width: auto;
+  display: block;
 }
 
 .navbar-logo {
@@ -177,7 +183,7 @@ main { padding-top: 64px; }
   padding: 8px 4px;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #374151;
+  color: #e5e7eb;
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
