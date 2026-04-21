@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/eumjinin/static/css/main.e7e8d5f3.css",
-    "main.js": "/eumjinin/static/js/main.28aa1625.js",
+    "main.css": "/eumjinin/static/css/main.6913682e.css",
+    "main.js": "/eumjinin/static/js/main.a94699b5.js",
     "static/js/453.60d6249d.chunk.js": "/eumjinin/static/js/453.60d6249d.chunk.js",
     "static/media/JSArirang.ttf": "/eumjinin/static/media/JSArirang.6330c914d757e01a9535.ttf",
     "index.html": "/eumjinin/index.html",
-    "main.e7e8d5f3.css.map": "/eumjinin/static/css/main.e7e8d5f3.css.map",
-    "main.28aa1625.js.map": "/eumjinin/static/js/main.28aa1625.js.map",
+    "main.6913682e.css.map": "/eumjinin/static/css/main.6913682e.css.map",
+    "main.a94699b5.js.map": "/eumjinin/static/js/main.a94699b5.js.map",
     "453.60d6249d.chunk.js.map": "/eumjinin/static/js/453.60d6249d.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.e7e8d5f3.css",
-    "static/js/main.28aa1625.js"
+    "static/css/main.6913682e.css",
+    "static/js/main.a94699b5.js"
   ]
 }
