@@ -1,40 +1,31 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { SplashContext } from '../App';
 
 function useCountUp(target, duration = 1800) {
   const [count, setCount] = useState(0);
-  const [started, setStarted] = useState(false);
-  const ref = useRef(null);
+  const splashLoading = useContext(SplashContext);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
-      { threshold: 0.5 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!started) return;
+    if (splashLoading) return; // 스플래시가 끝날 때까지 대기
     let startTime = null;
     const step = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setCount(Math.floor(eased * target));
       if (progress < 1) requestAnimationFrame(step);
       else setCount(target);
     };
     requestAnimationFrame(step);
-  }, [started, target, duration]);
+  }, [splashLoading, target, duration]);
 
-  return { count, ref };
+  return count;
 }
 
 function AnimatedStat({ target, suffix, label }) {
-  const { count, ref } = useCountUp(target);
+  const count = useCountUp(target);
   return (
-    <div className="stat" ref={ref}>
+    <div className="stat">
       <span className="stat-num">{count}{suffix}</span>
       <span className="stat-label">{label}</span>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, createContext } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -10,6 +10,8 @@ import Join from './pages/Join';
 import Reservation from './pages/Reservation';
 import ReservationDetail from './pages/ReservationDetail';
 import './App.css';
+
+export const SplashContext = createContext(true);
 
 function MainLayout() {
   return (
@@ -26,7 +28,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   return (
-    <>
+    <SplashContext.Provider value={loading}>
       {loading && <LoadingSplash onDone={() => setLoading(false)} />}
       <HashRouter>
         <div className="App">
@@ -41,7 +43,7 @@ function App() {
           <Footer />
         </div>
       </HashRouter>
-    </>
+    </SplashContext.Provider>
   );
 }
 
