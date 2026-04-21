@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 
 const GENRES = ['팝', '록', '재즈', 'R&B', '클래식', '힙합', '인디', '기타'];
-const ROLES = ['보컬', '기타', '베이스', '드럼', '키보드/피아노', '현악기', '관악기', '작곡/편곡', '기타'];
+const ROLES = ['보컬', '기타', '베이스', '드럼', '키보드/피아노', '현악기', '관악기', '작곡/편곡', '그 외'];
 const CONFETTI_COLORS = ['#a78bfa', '#f472b6', '#fbbf24', '#34d399', '#60a5fa', '#f87171', '#fb923c'];
 
 const today = new Date().toISOString().split('T')[0];
