@@ -18,22 +18,39 @@ function writeData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-function hasConflict(existing, roomId, date, startTime, endTime) {
-  return existing.some(r =>
-    r.roomId === roomId &&
-    r.date === date &&
-    r.startTime < endTime &&
-    r.endTime > startTime
-  );
+// 날짜 + 시간을 절대 분(minute)으로 변환 — 자정 경계 비교에 사용
+function toAbsMins(date, timeStr) {
+  const [h] = timeStr.split(':').map(Number);
+  return Math.floor(new Date(date).getTime() / 60000) + h * 60;
 }
 
-// 특정 방·날짜의 예약 목록 조회
+function hasConflict(existing, roomId, date, startTime, endTime) {
+  const newStart = toAbsMins(date, startTime);
+  const newEnd   = toAbsMins(date, endTime);
+  return existing.some(r => {
+    if (r.roomId !== roomId) return false;
+    const rStart = toAbsMins(r.date, r.startTime);
+    const rEnd   = toAbsMins(r.date, r.endTime);
+    return rStart < newEnd && rEnd > newStart;
+  });
+}
+
+// 특정 방·날짜의 예약 목록 조회 (전날에서 자정 넘어온 예약 포함)
 app.get('/api/reservations', (req, res) => {
   const { roomId, date } = req.query;
   const all = readData();
-  const result = all.filter(r =>
-    r.roomId === parseInt(roomId) && r.date === date
-  );
+
+  const prevDate = new Date(date);
+  prevDate.setDate(prevDate.getDate() - 1);
+  const prevDateStr = prevDate.toISOString().split('T')[0];
+
+  const result = all.filter(r => {
+    if (r.roomId !== parseInt(roomId)) return false;
+    if (r.date === date) return true;
+    // 전날 예약이 자정을 넘어 오늘로 이어지는 경우
+    if (r.date === prevDateStr && parseInt(r.endTime) > 24) return true;
+    return false;
+  });
   res.json(result);
 });
 
