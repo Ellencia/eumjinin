@@ -9,6 +9,8 @@ import Spaces from './pages/Spaces';
 import Join from './pages/Join';
 import Reservation from './pages/Reservation';
 import ReservationDetail from './pages/ReservationDetail';
+import SpaceList from './pages/SpaceList';
+import SpaceDetail from './pages/SpaceDetail';
 import './App.css';
 
 export const SplashContext = createContext(true);
@@ -36,6 +38,8 @@ function App() {
           <main>
             <Routes>
               <Route path="/" element={<MainLayout />} />
+              <Route path="/spaces" element={<SpaceList />} />
+              <Route path="/spaces/:id" element={<SpaceDetail />} />
               <Route path="/reservation" element={<Reservation />} />
               <Route path="/reservation/:roomId" element={<ReservationDetail />} />
             </Routes>

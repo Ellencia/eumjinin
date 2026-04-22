@@ -36,14 +36,26 @@ function AnimatedStat({ target, suffix, label }) {
 
 function Home() {
   const location = useLocation();
+  const [scrollProgress, setScrollProgress] = useState(0);
 
-  // 다른 페이지에서 navigate('/', { state: { scrollTo: 'join' } })로 왔을 때 스크롤
   useEffect(() => {
     if (location.state?.scrollTo) {
       const el = document.getElementById(location.state.scrollTo);
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   }, [location.state]);
+
+  // 스크롤 진행도 계산 (히어로 높이 기준 0~1)
+  useEffect(() => {
+    const handleScroll = () => {
+      const hero = document.getElementById('home');
+      if (!hero) return;
+      const progress = Math.min(window.scrollY / hero.offsetHeight, 1);
+      setScrollProgress(progress);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollToJoin = (e) => {
     e.preventDefault();
@@ -53,6 +65,16 @@ function Home() {
   return (
     <section className="hero" id="home">
       <HeroSlider />
+      {/* 하단 그라데이션 - 스크롤하면 아래에서 올라옴 */}
+      <div
+        className="hero-bottom-gradient"
+        style={{ transform: `translateY(${scrollProgress > 0 ? 0 : 100}%)` }}
+      />
+      {/* 스크롤 연동 전환 오버레이 */}
+      <div
+        className="hero-transition-overlay"
+        style={{ opacity: scrollProgress }}
+      />
       <div className="hero-content">
         <p className="hero-eyebrow">🎶 Music Community & Space</p>
         <h1 className="hero-title">

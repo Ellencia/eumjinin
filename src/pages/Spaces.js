@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import spaces from '../data/spaces';
 
 const FILTERS = ['전체', '무대', '연습실'];
@@ -10,7 +11,7 @@ function SpaceCard({ space }) {
   const color = typeColor[space.type];
   const label = typeLabel[space.type];
   return (
-    <div className="space-card">
+    <Link to={`/spaces/${space.id}`} className="space-card space-card-link">
       <span className="space-badge" style={{ background: color }}>{label}</span>
       <h3 className="space-name">{space.name}</h3>
       <p className="space-desc">{space.desc}</p>
@@ -20,7 +21,8 @@ function SpaceCard({ space }) {
           <span className="tag" key={t}>#{t}</span>
         ))}
       </div>
-    </div>
+      <span className="space-card-arrow">자세히 보기 →</span>
+    </Link>
   );
 }
 
