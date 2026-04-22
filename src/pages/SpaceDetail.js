@@ -1,13 +1,81 @@
+import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import spaces from '../data/spaces';
 
+import hallk1 from '../assets/hallk1.webp';
+import hallk2 from '../assets/hallk2.webp';
+import hallk3 from '../assets/hallk3.webp';
+import hallk4 from '../assets/hallk4.webp';
+import hallk5 from '../assets/hallk5.webp';
+
+const SPACE_IMAGES = {
+  6: [hallk1, hallk2, hallk3, hallk4, hallk5],
+};
+
 const typeLabel = { stage: '무대', rehearsal: '연습실' };
 const typeColor = { stage: '#7c3aed', rehearsal: '#0ea5e9' };
+
+function Lightbox({ images, index, onClose }) {
+  const [current, setCurrent] = useState(index);
+
+  const prev = (e) => { e.stopPropagation(); setCurrent((c) => (c - 1 + images.length) % images.length); };
+  const next = (e) => { e.stopPropagation(); setCurrent((c) => (c + 1) % images.length); };
+
+  return (
+    <div className="lightbox-overlay" onClick={onClose}>
+      <button className="lightbox-close" onClick={onClose}>✕</button>
+      <button className="lightbox-arrow lightbox-prev" onClick={prev}>&#8249;</button>
+      <img
+        src={images[current]}
+        alt={`${current + 1}`}
+        className="lightbox-img"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <button className="lightbox-arrow lightbox-next" onClick={next}>&#8250;</button>
+      <p className="lightbox-counter">{current + 1} / {images.length}</p>
+    </div>
+  );
+}
+
+function SpaceGallery({ images }) {
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [main, ...rest] = images;
+
+  return (
+    <>
+      <div className="space-gallery">
+        {/* 대표 이미지 */}
+        <div className="gallery-main" onClick={() => setLightboxIndex(0)}>
+          <img src={main} alt="대표 이미지" />
+          <span className="gallery-zoom">⊕</span>
+        </div>
+        {/* 2×2 그리드 */}
+        <div className="gallery-grid">
+          {rest.map((img, i) => (
+            <div key={i} className="gallery-thumb" onClick={() => setLightboxIndex(i + 1)}>
+              <img src={img} alt={`사진 ${i + 2}`} />
+              <span className="gallery-zoom">⊕</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          images={images}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+    </>
+  );
+}
 
 function SpaceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const space = spaces.find((s) => s.id === parseInt(id));
+  const images = SPACE_IMAGES[parseInt(id)];
 
   if (!space) {
     return (
@@ -26,12 +94,10 @@ function SpaceDetail() {
     <section className="spaces spaces-page">
       <div className="section-container">
 
-        {/* 브레드크럼 */}
         <p className="spaces-breadcrumb">
           <Link to="/">홈</Link> &rsaquo; <Link to="/spaces">공간 안내</Link> &rsaquo; {space.name}
         </p>
 
-        {/* 헤더 */}
         <div className="space-detail-header">
           <span className="space-badge" style={{ background: typeColor[space.type] }}>
             {typeLabel[space.type]}
@@ -44,7 +110,9 @@ function SpaceDetail() {
           </div>
         </div>
 
-        {/* 주요 특징 + 구비 장비 */}
+        {/* 갤러리 */}
+        {images && <SpaceGallery images={images} />}
+
         <div className="space-detail-grid">
           <div className="space-detail-section">
             <h3>주요 특징</h3>
@@ -60,7 +128,6 @@ function SpaceDetail() {
           </div>
         </div>
 
-        {/* 액션 버튼 */}
         <div className="space-detail-actions">
           {space.type === 'rehearsal' && (
             <Link to={`/reservation/${space.id}`} className="btn btn-primary">
