@@ -35,6 +35,7 @@ const NAV_ITEMS = [
 ];
 
 const RIGHT_ITEMS = [
+  { label: '시안 보기', href: '/designs' },
   { label: '연습실 예약', href: '/reservation', highlight: true },
 ];
 
@@ -109,8 +110,12 @@ function Navbar() {
           <ul className="desktop-menu desktop-menu-right">
             {RIGHT_ITEMS.map((item) => (
               <li key={item.label} className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
-                <Link to={item.href} className="nav-link nav-highlight" onClick={closeAll}>
-                  🎸 {item.label}
+                <Link
+                  to={item.href}
+                  className={`nav-link ${item.highlight ? 'nav-highlight' : 'nav-preview-link'}`}
+                  onClick={closeAll}
+                >
+                  {item.highlight ? '🎸 ' : ''}{item.label}
                 </Link>
               </li>
             ))}
@@ -185,8 +190,12 @@ function Navbar() {
           ))}
           {RIGHT_ITEMS.map((item) => (
             <div key={item.label} className="mobile-item">
-              <Link to={item.href} className="mobile-link mobile-highlight" onClick={closeAll}>
-                🎸 {item.label}
+              <Link
+                to={item.href}
+                className={`mobile-link ${item.highlight ? 'mobile-highlight' : ''}`}
+                onClick={closeAll}
+              >
+                {item.highlight ? '🎸 ' : ''}{item.label}
               </Link>
             </div>
           ))}
