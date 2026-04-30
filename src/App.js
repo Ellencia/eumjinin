@@ -11,6 +11,8 @@ import Reservation from './pages/Reservation';
 import ReservationDetail from './pages/ReservationDetail';
 import SpaceList from './pages/SpaceList';
 import SpaceDetail from './pages/SpaceDetail';
+import InfoPage from './pages/InfoPage';
+import DesignPilot from './pages/DesignPilot';
 import './App.css';
 
 export const SplashContext = createContext(true);
@@ -42,6 +44,15 @@ function App() {
               <Route path="/spaces/:id" element={<SpaceDetail />} />
               <Route path="/reservation" element={<Reservation />} />
               <Route path="/reservation/:roomId" element={<ReservationDetail />} />
+              <Route path="/about/greeting" element={<InfoPage />} />
+              <Route path="/about/history" element={<InfoPage />} />
+              <Route path="/about/location" element={<InfoPage />} />
+              <Route path="/community/archive" element={<InfoPage />} />
+              <Route path="/community/board" element={<InfoPage />} />
+              <Route path="/community/qna" element={<InfoPage />} />
+              <Route path="/projects/overview" element={<InfoPage />} />
+              <Route path="/projects/ongoing" element={<InfoPage />} />
+              <Route path="/designs" element={<DesignPilot />} />
             </Routes>
           </main>
           <Footer />
