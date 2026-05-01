@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
+import Reveal from '../components/Reveal';
 
 const GENRES = ['팝', '록', '재즈', 'R&B', '클래식', '힙합', '인디', '기타'];
 const ROLES = ['보컬', '기타', '베이스', '드럼', '키보드/피아노', '현악기', '관악기', '작곡/편곡', '그 외'];
@@ -145,10 +146,13 @@ function Join() {
   return (
     <section className="join" id="join">
       <div className="section-container">
-        <h2 className="section-title">멤버 신청</h2>
-        <p className="section-sub">
-          함께 음악을 만들어갈 멤버를 기다리고 있습니다.
-        </p>
+        <Reveal>
+          <h2 className="section-title">멤버 신청</h2>
+          <p className="section-sub">
+            함께 음악을 만들어갈 멤버를 기다리고 있습니다.
+          </p>
+        </Reveal>
+        <Reveal delay={120}>
         <form className="join-form" onSubmit={handleSubmit}>
 
           <div className="form-row">
@@ -251,6 +255,7 @@ function Join() {
             {loading ? '신청 중...' : '신청하기'}
           </button>
         </form>
+        </Reveal>
       </div>
     </section>
   );

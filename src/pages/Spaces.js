@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import spaces from '../data/spaces';
+import Reveal from '../components/Reveal';
 
 const FILTERS = ['전체', '무대', '연습실'];
 
@@ -38,24 +39,30 @@ function Spaces() {
   return (
     <section className="spaces" id="spaces">
       <div className="section-container">
-        <h2 className="section-title">공간 안내</h2>
-        <p className="section-sub">
-          공연 무대부터 녹음 부스까지, 다양한 공간을 멤버에게 제공합니다.
-        </p>
-        <div className="filter-tabs">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              className={`filter-btn ${filter === f ? 'active' : ''}`}
-              onClick={() => setFilter(f)}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+        <Reveal>
+          <h2 className="section-title">공간 안내</h2>
+          <p className="section-sub">
+            공연 무대부터 녹음 부스까지, 다양한 공간을 멤버에게 제공합니다.
+          </p>
+        </Reveal>
+        <Reveal delay={100}>
+          <div className="filter-tabs">
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                className={`filter-btn ${filter === f ? 'active' : ''}`}
+                onClick={() => setFilter(f)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </Reveal>
         <div className="spaces-grid">
-          {filtered.map((s) => (
-            <SpaceCard key={s.id} space={s} />
+          {filtered.map((s, i) => (
+            <Reveal key={s.id} delay={i * 80}>
+              <SpaceCard space={s} />
+            </Reveal>
           ))}
         </div>
       </div>
