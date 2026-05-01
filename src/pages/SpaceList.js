@@ -7,6 +7,26 @@ const typeLabel = { stage: '무대', rehearsal: '연습실' };
 const typeColor = { stage: '#7c3aed', rehearsal: '#0ea5e9' };
 
 function SpaceCard({ space }) {
+  const isComingSoon = space.name === '준비중';
+
+  if (isComingSoon) {
+    return (
+      <div className="space-card space-card-coming">
+        <span className="space-badge" style={{ background: typeColor[space.type] }}>
+          {typeLabel[space.type]}
+        </span>
+        <div className="space-coming-badge">준비중</div>
+        <h3 className="space-name">—</h3>
+        <p className="space-desc">새로운 공간이 곧 공개됩니다.</p>
+        <div className="space-tags">
+          {space.tags.map((t) => (
+            <span className="tag" key={t}>#{t}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Link to={`/spaces/${space.id}`} className="space-card space-card-link">
       <span className="space-badge" style={{ background: typeColor[space.type] }}>
