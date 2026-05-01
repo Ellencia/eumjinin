@@ -2,11 +2,12 @@ import { useState } from 'react';
 
 const DESIGNS = [
   { id: 'v1', name: 'Vinyl & Zine',    tone: '빈티지 바이닐 · 펑크 진',   folder: 'v1' },
-  { id: 'v2', name: 'Editorial',       tone: '에디토리얼 매거진',          folder: 'v2' },
-  { id: 'v3', name: 'Indie Warm',      tone: '인디 · 따뜻한 감성',         folder: 'v3' },
-  { id: 'v4', name: 'Neon Night',      tone: '사이버펑크 · 클럽 분위기',   folder: 'v4' },
-  { id: 'v5', name: 'Traditional KR',  tone: '한국 전통 · 한지 감성',      folder: 'v5' },
-  { id: 'v6', name: 'Organic',         tone: '자연 · 유기적 · 차분한',     folder: 'v6' },
+  { id: 'v2', name: 'DIY Punk',        tone: 'DIY 펑크 포스터',            folder: 'v2' },
+  { id: 'v3', name: 'Editorial',       tone: '에디토리얼 매거진',          folder: 'v3' },
+  { id: 'v4', name: 'Indie Folk',      tone: '인디 · 포크 · 따뜻한 감성', folder: 'v4' },
+  { id: 'v5', name: 'Live Club',       tone: '라이브 클럽 · 네온 분위기',  folder: 'v5' },
+  { id: 'v6', name: 'Korean Modern',   tone: '한국 모던 · 전통 감성',      folder: 'v6' },
+  { id: 'v7', name: 'Organic',         tone: '자연 · 한지 · 나무 질감',    folder: 'v7' },
 ];
 
 function DesignPilot() {
@@ -41,13 +42,16 @@ function DesignPilot() {
 
         <div className="design-iframe-wrap">
           <p className="design-iframe-label">{selected.tone}</p>
-          <iframe
-            key={src}
-            src={src}
-            title={selected.name}
-            className="design-iframe"
-            sandbox="allow-scripts allow-same-origin"
-          />
+          {DESIGNS.map((d) => (
+            <iframe
+              key={d.id}
+              src={`${process.env.PUBLIC_URL}/designs/${d.folder}/index.html`}
+              title={d.name}
+              className="design-iframe"
+              sandbox="allow-scripts allow-same-origin"
+              style={{ display: d.id === selectedId ? 'block' : 'none' }}
+            />
+          ))}
         </div>
 
       </div>
