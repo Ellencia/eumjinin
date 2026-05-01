@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>음진인 — 라이브 클럽 ver.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Black+Han+Sans&family=Major+Mono+Display&family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08060f;
+    --bg-2:#0e0a1a;
+    --panel:#13102b;
+    --neon-p:#c026ff;
+    --neon-c:#00e5ff;
+    --neon-m:#ff2e88;
+    --neon-y:#fff066;
+    --text:#eae6ff;
+    --mute:#8d85b8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:"Space Grotesk","Noto Sans KR",sans-serif;overflow-x:hidden}
+  body{
+    background-image:
+      radial-gradient(ellipse at 10% -10%, rgba(192,38,255,.25), transparent 50%),
+      radial-gradient(ellipse at 110% 20%, rgba(0,229,255,.18), transparent 50%),
+      radial-gradient(ellipse at 50% 110%, rgba(255,46,136,.2), transparent 50%);
+    background-attachment:fixed;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px);
+  }
+  a{color:inherit;text-decoration:none}
+
+  .neon-p{color:var(--neon-p);text-shadow:0 0 10px var(--neon-p),0 0 30px rgba(192,38,255,.6)}
+  .neon-c{color:var(--neon-c);text-shadow:0 0 10px var(--neon-c),0 0 30px rgba(0,229,255,.6)}
+  .neon-m{color:var(--neon-m);text-shadow:0 0 10px var(--neon-m),0 0 30px rgba(255,46,136,.6)}
+  .neon-y{color:var(--neon-y);text-shadow:0 0 8px var(--neon-y),0 0 24px rgba(255,240,102,.6)}
+
+  /* TOPBAR */
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    backdrop-filter:blur(16px);background:rgba(8,6,15,.7);
+    border-bottom:1px solid rgba(192,38,255,.3);
+    padding:14px 32px;display:flex;align-items:center;gap:24px;
+  }
+  .topbar .logo{
+    font-family:"Major Mono Display",monospace;font-size:22px;letter-spacing:.05em;
+    color:var(--neon-c);text-shadow:0 0 12px var(--neon-c);
+  }
+  .topbar .live-dot{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:"Space Grotesk",sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--neon-m);
+  }
+  .topbar .live-dot::before{
+    content:"";width:8px;height:8px;border-radius:50%;background:var(--neon-m);
+    box-shadow:0 0 12px var(--neon-m);animation:pulse 1.5s infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .topbar nav{margin-left:auto;display:flex;gap:24px;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+  .topbar nav a{color:var(--mute);transition:color .2s, text-shadow .2s}
+  .topbar nav a:hover{color:var(--neon-c);text-shadow:0 0 10px var(--neon-c)}
+  .topbar .ticket-btn{
+    border:1px solid var(--neon-m);color:var(--neon-m);
+    padding:8px 16px;font-size:12px;letter-spacing:.15em;text-transform:uppercase;
+    transition:all .2s;
+  }
+  .topbar .ticket-btn:hover{background:var(--neon-m);color:var(--bg);box-shadow:0 0 20px var(--neon-m)}
+
+  /* HERO */
+  .hero{
+    position:relative;padding:80px 32px 100px;min-height:80vh;
+    max-width:1400px;margin:0 auto;
+    display:grid;grid-template-columns:1.4fr 1fr;gap:60px;align-items:center;
+  }
+  .hero .meta-tag{
+    font-family:"Major Mono Display",monospace;font-size:13px;letter-spacing:.3em;
+    color:var(--neon-c);margin-bottom:24px;display:inline-flex;align-items:center;gap:14px;
+  }
+  .hero .meta-tag::before, .hero .meta-tag::after{
+    content:"";width:40px;height:1px;background:linear-gradient(90deg,transparent,var(--neon-c),transparent);
+  }
+  .hero h1{
+    font-family:"Black Han Sans","Bebas Neue",sans-serif;
+    font-size:clamp(80px,13vw,200px);line-height:.85;letter-spacing:-.01em;
+  }
+  .hero h1 .l1{display:block;color:var(--text)}
+  .hero h1 .l2{display:block}
+  .hero h1 .l3{display:block;font-family:"Bebas Neue",sans-serif;letter-spacing:.02em}
+  .hero h1 .glitch{
+    position:relative;display:inline-block;
+  }
+  .hero h1 .glitch::before, .hero h1 .glitch::after{
+    content:attr(data-text);position:absolute;left:0;top:0;width:100%;
+    mix-blend-mode:screen;
+  }
+  .hero h1 .glitch::before{color:var(--neon-c);transform:translate(-3px,0);opacity:.7}
+  .hero h1 .glitch::after{color:var(--neon-m);transform:translate(3px,0);opacity:.7}
+
+  .hero .lede{
+    font-size:18px;line-height:1.7;color:var(--mute);max-width:520px;margin:32px 0;
+  }
+  .hero .lede em{color:var(--text);font-style:normal;font-weight:700}
+
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:16px 26px;font-family:"Space Grotesk",sans-serif;font-weight:700;
+    font-size:14px;letter-spacing:.2em;text-transform:uppercase;
+    transition:all .2s;
+  }
+  .btn.glow{
+    background:transparent;border:1.5px solid var(--neon-p);color:var(--neon-p);
+    box-shadow:0 0 0 0 var(--neon-p), inset 0 0 20px transparent;
+  }
+  .btn.glow:hover{box-shadow:0 0 24px var(--neon-p), inset 0 0 24px rgba(192,38,255,.2)}
+  .btn.solid{background:var(--neon-m);color:var(--bg);box-shadow:0 0 24px var(--neon-m)}
+  .btn.solid:hover{background:var(--neon-c);box-shadow:0 0 32px var(--neon-c)}
+
+  /* hero visual: equalizer + circle */
+  .hero-vis{position:relative;aspect-ratio:1/1}
+  .ring{
+    position:absolute;inset:10%;border:1px solid var(--neon-p);border-radius:50%;
+    box-shadow:inset 0 0 80px rgba(192,38,255,.3), 0 0 80px rgba(192,38,255,.4);
+    animation:spin 30s linear infinite;
+  }
+  .ring.r2{inset:25%;border-color:var(--neon-c);box-shadow:inset 0 0 60px rgba(0,229,255,.3),0 0 60px rgba(0,229,255,.4);animation-direction:reverse;animation-duration:20s}
+  .ring.r3{inset:40%;border-color:var(--neon-m);box-shadow:inset 0 0 40px rgba(255,46,136,.3),0 0 40px rgba(255,46,136,.4);animation-duration:15s}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ring-text{
+    position:absolute;inset:0;
+    font-family:"Major Mono Display",monospace;font-size:11px;letter-spacing:.5em;
+    color:var(--neon-c);
+  }
+  .eq{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    display:flex;gap:6px;align-items:flex-end;height:80px;
+  }
+  .eq i{display:block;width:8px;background:var(--neon-y);box-shadow:0 0 12px var(--neon-y);animation:bar 1.2s infinite ease-in-out}
+  .eq i:nth-child(1){height:30%;animation-delay:0}
+  .eq i:nth-child(2){height:60%;animation-delay:.1s}
+  .eq i:nth-child(3){height:90%;animation-delay:.2s}
+  .eq i:nth-child(4){height:50%;animation-delay:.3s}
+  .eq i:nth-child(5){height:75%;animation-delay:.4s}
+  .eq i:nth-child(6){height:40%;animation-delay:.5s}
+  .eq i:nth-child(7){height:65%;animation-delay:.6s}
+  @keyframes bar{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+
+  /* MARQUEE */
+  .marq{
+    background:var(--neon-m);color:var(--bg);
+    padding:14px 0;overflow:hidden;
+    border-top:1px solid rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.2);
+    position:relative;z-index:2;
+  }
+  .marq .track{
+    display:inline-flex;gap:32px;white-space:nowrap;
+    font-family:"Bebas Neue",sans-serif;font-size:20px;letter-spacing:.1em;
+    animation:scroll 30s linear infinite;
+  }
+  .marq .track span::after{content:" ✦ "}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* SECTIONS */
+  section.block{position:relative;z-index:2;max-width:1400px;margin:0 auto;padding:100px 32px}
+  .sec-head{display:grid;grid-template-columns:auto 1fr auto;gap:32px;align-items:end;margin-bottom:60px}
+  .sec-head .num{
+    font-family:"Major Mono Display",monospace;font-size:14px;letter-spacing:.3em;color:var(--neon-c);
+    border:1px solid var(--neon-c);padding:6px 14px;
+  }
+  .sec-head h3{
+    font-family:"Black Han Sans",sans-serif;font-size:80px;line-height:.9;letter-spacing:-.02em;
+  }
+  .sec-head h3 em{font-style:normal;color:var(--neon-p);text-shadow:0 0 30px rgba(192,38,255,.6)}
+  .sec-head .desc{font-size:14px;color:var(--mute);max-width:300px;line-height:1.6;text-align:right}
+
+  /* manifesto: stat-style */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:rgba(192,38,255,.3)}
+  .stat{
+    background:var(--bg-2);padding:32px 24px;
+    border:1px solid transparent;transition:border-color .2s, background .2s;
+  }
+  .stat:hover{border-color:var(--neon-p);background:var(--panel)}
+  .stat .num{
+    font-family:"Bebas Neue",sans-serif;font-size:64px;line-height:.9;
+    background:linear-gradient(180deg,var(--neon-c),var(--neon-p));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:12px;
+  }
+  .stat h4{font-family:"Black Han Sans",sans-serif;font-size:22px;line-height:1.2;margin-bottom:8px}
+  .stat p{font-size:13px;color:var(--mute);line-height:1.5}
+
+  /* bands as tickets */
+  .ticket-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+  a.ticket{display:block;color:inherit;text-decoration:none}
+  .ticket{
+    background:linear-gradient(135deg, var(--panel), var(--bg-2));
+    border:1px solid rgba(192,38,255,.3);
+    padding:28px;position:relative;overflow:hidden;
+    transition:transform .2s, border-color .2s, box-shadow .2s;
+  }
+  .ticket::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--neon-p),var(--neon-c),var(--neon-m));
+  }
+  .ticket:hover{transform:translateY(-4px);border-color:var(--neon-c);box-shadow:0 12px 40px rgba(0,229,255,.2)}
+  .ticket .row1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+  .ticket .id{font-family:"Major Mono Display",monospace;font-size:11px;letter-spacing:.2em;color:var(--neon-c)}
+  .ticket .est{font-family:"Major Mono Display",monospace;font-size:11px;letter-spacing:.2em;color:var(--mute)}
+  .ticket h4{font-family:"Black Han Sans",sans-serif;font-size:32px;line-height:1;margin-bottom:8px}
+  .ticket .members{font-size:13px;color:var(--mute);margin-bottom:18px}
+  .ticket .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .ticket .tag{
+    font-family:"Space Grotesk",sans-serif;font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+    padding:4px 10px;border:1px solid var(--neon-p);color:var(--neon-p);
+  }
+
+  /* shows: setlist style */
+  .setlist{display:grid;gap:0;border-top:1px solid rgba(192,38,255,.3)}
+  a.set-row{color:inherit;text-decoration:none}
+  .set-row{
+    display:grid;grid-template-columns:80px 140px 1fr 200px 120px;gap:24px;
+    padding:24px 16px;border-bottom:1px solid rgba(192,38,255,.2);
+    align-items:center;transition:background .2s;
+  }
+  .set-row:hover{background:rgba(192,38,255,.06)}
+  .set-row .idx{font-family:"Major Mono Display",monospace;font-size:14px;color:var(--neon-c)}
+  .set-row .date{font-family:"Bebas Neue",sans-serif;font-size:32px;line-height:1;letter-spacing:.05em}
+  .set-row .date small{display:block;font-family:"Space Grotesk",sans-serif;font-size:11px;letter-spacing:.2em;color:var(--mute);margin-top:4px}
+  .set-row h5{font-family:"Black Han Sans",sans-serif;font-size:24px;line-height:1.1;margin-bottom:4px}
+  .set-row p{font-size:13px;color:var(--mute)}
+  .set-row .venue{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.05em}
+  .set-row .venue small{display:block;font-family:"Space Grotesk",sans-serif;font-size:11px;color:var(--mute);letter-spacing:.1em}
+  .set-row .price-cell{text-align:right}
+  .set-row .price-cell .p{font-family:"Bebas Neue",sans-serif;font-size:24px;color:var(--neon-y)}
+  .set-row .price-cell small{display:block;font-size:11px;color:var(--mute)}
+
+  /* practice: console panel */
+  .console{
+    background:var(--panel);border:1px solid rgba(0,229,255,.3);
+    display:grid;grid-template-columns:1.2fr 1fr;
+    position:relative;
+  }
+  .console::before{
+    content:"";position:absolute;top:-1px;left:-1px;right:-1px;bottom:-1px;
+    background:linear-gradient(135deg,var(--neon-p),var(--neon-c),var(--neon-m));
+    z-index:-1;filter:blur(20px);opacity:.4;
+  }
+  .console .left{padding:48px;border-right:1px solid rgba(0,229,255,.2)}
+  .console .right{padding:48px;background:var(--bg-2)}
+  .console .left .label{font-family:"Major Mono Display",monospace;font-size:12px;letter-spacing:.3em;color:var(--neon-c);margin-bottom:16px}
+  .console h3{font-family:"Black Han Sans",sans-serif;font-size:64px;line-height:.9;margin-bottom:18px}
+  .console .desc{font-size:15px;line-height:1.7;color:var(--mute);margin-bottom:24px}
+  .console .specs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .console .spec{padding:12px;border:1px solid rgba(192,38,255,.3)}
+  .console .spec dt{font-family:"Major Mono Display",monospace;font-size:10px;letter-spacing:.2em;color:var(--neon-c);margin-bottom:4px}
+  .console .spec dd{font-family:"Bebas Neue",sans-serif;font-size:22px;letter-spacing:.05em}
+  .console .right h4{font-family:"Major Mono Display",monospace;font-size:13px;letter-spacing:.3em;color:var(--neon-m);margin-bottom:18px}
+  .console .right .rate{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px dashed rgba(255,255,255,.15);align-items:baseline}
+  .console .right .rate:last-of-type{border-bottom:none}
+  .console .right .rate .name{font-size:14px;color:var(--mute)}
+  .console .right .rate .v{font-family:"Bebas Neue",sans-serif;font-size:24px;color:var(--neon-y);text-shadow:0 0 12px rgba(255,240,102,.5)}
+  .console .right a{
+    display:block;text-align:center;margin-top:24px;padding:16px;
+    background:var(--neon-m);color:var(--bg);
+    font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+    box-shadow:0 0 20px var(--neon-m);
+  }
+
+  /* JOIN CTA */
+  .join-hero{
+    position:relative;padding:120px 32px;text-align:center;overflow:hidden;
+    border-top:1px solid rgba(192,38,255,.3);border-bottom:1px solid rgba(192,38,255,.3);
+  }
+  .join-hero::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse at center, rgba(192,38,255,.3), transparent 60%);
+  }
+  .join-hero > *{position:relative;z-index:1}
+  .join-hero .tag{font-family:"Major Mono Display",monospace;font-size:13px;letter-spacing:.4em;color:var(--neon-c);margin-bottom:24px}
+  .join-hero h3{font-family:"Black Han Sans",sans-serif;font-size:clamp(64px,11vw,160px);line-height:.9;margin-bottom:24px}
+  .join-hero h3 .glow-p{color:var(--neon-p);text-shadow:0 0 40px var(--neon-p)}
+  .join-hero p{font-size:18px;color:var(--mute);max-width:560px;margin:0 auto 40px;line-height:1.7}
+
+  footer{
+    position:relative;z-index:2;padding:60px 32px 30px;max-width:1400px;margin:0 auto;
+    display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:32px;
+  }
+  footer h6{font-family:"Major Mono Display",monospace;font-size:11px;letter-spacing:.3em;color:var(--neon-c);margin-bottom:14px}
+  footer ul{list-style:none}
+  footer li{font-size:14px;line-height:1.8;color:var(--mute)}
+  footer .end{
+    grid-column:1/-1;border-top:1px solid rgba(192,38,255,.2);padding-top:18px;margin-top:18px;
+    display:flex;justify-content:space-between;font-family:"Major Mono Display",monospace;font-size:11px;letter-spacing:.2em;color:var(--mute);
+  }
+  footer .nameplate{font-family:"Major Mono Display",monospace;font-size:32px;color:var(--neon-c);margin-bottom:8px;text-shadow:0 0 16px var(--neon-c)}
+
+  /* COUNTDOWN BAR */
+  .countdown-bar{
+    position:relative;z-index:5;
+    background:linear-gradient(90deg, rgba(192,38,255,.15), rgba(0,229,255,.15), rgba(255,46,136,.15));
+    border-bottom:1px solid rgba(192,38,255,.3);
+    backdrop-filter:blur(8px);
+  }
+  .cb-inner{
+    max-width:1400px;margin:0 auto;padding:14px 32px;
+    display:flex;align-items:center;gap:32px;flex-wrap:wrap;
+  }
+  .cb-label{display:flex;flex-direction:column;gap:2px}
+  .cb-tag{font-family:"Major Mono Display",monospace;font-size:11px;letter-spacing:.3em;color:var(--neon-c)}
+  .cb-title{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.05em;color:var(--text)}
+  .cb-clock{display:flex;gap:10px;margin-left:auto}
+  .cb-unit{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:6px 4px;border:1px solid rgba(192,38,255,.4);background:rgba(8,6,15,.6)}
+  .cb-unit b{font-family:"Bebas Neue",sans-serif;font-size:26px;line-height:1;color:var(--neon-y);text-shadow:0 0 10px rgba(255,240,102,.5);font-weight:400}
+  .cb-unit small{font-family:"Major Mono Display",monospace;font-size:9px;letter-spacing:.25em;color:var(--mute);margin-top:3px}
+  .cb-cta{
+    border:1px solid var(--neon-m);color:var(--neon-m);
+    padding:10px 18px;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    transition:all .2s;
+  }
+  .cb-cta:hover{background:var(--neon-m);color:var(--bg);box-shadow:0 0 20px var(--neon-m)}
+
+  /* NOW SPINNING */
+  .now-spin{
+    margin-top:32px;display:flex;gap:18px;align-items:center;
+    padding:14px;background:rgba(19,16,43,.7);border:1px solid rgba(0,229,255,.25);
+    backdrop-filter:blur(8px);max-width:520px;
+  }
+  .ns-cover{
+    width:84px;height:84px;flex-shrink:0;position:relative;overflow:hidden;
+    box-shadow:0 0 24px rgba(192,38,255,.4);
+  }
+  .ns-cover.playing{animation:nsPulse 2s infinite ease-in-out}
+  @keyframes nsPulse{0%,100%{box-shadow:0 0 24px rgba(192,38,255,.4)}50%{box-shadow:0 0 40px rgba(255,46,136,.7)}}
+  .ns-info{flex:1;min-width:0}
+  .ns-tag{font-family:"Major Mono Display",monospace;font-size:10px;letter-spacing:.3em;color:var(--neon-c);margin-bottom:4px}
+  .ns-title{font-family:"Black Han Sans",sans-serif;font-size:20px;line-height:1.1;margin-bottom:2px}
+  .ns-by{font-size:12px;color:var(--mute);margin-bottom:10px}
+  .ns-controls{display:flex;align-items:center;gap:10px}
+  .ns-play{
+    width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--neon-m);color:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 14px var(--neon-m);transition:all .2s;flex-shrink:0;
+  }
+  .ns-play:hover{background:var(--neon-c);box-shadow:0 0 20px var(--neon-c)}
+  .ns-bar{flex:1;height:3px;background:rgba(192,38,255,.2);position:relative;overflow:hidden;cursor:pointer}
+  .ns-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,var(--neon-c),var(--neon-m));box-shadow:0 0 8px var(--neon-m);transition:width .1s linear}
+  .ns-time{font-family:"Major Mono Display",monospace;font-size:10px;color:var(--mute);letter-spacing:.1em;white-space:nowrap}
+
+  @media(max-width:900px){
+    .hero{grid-template-columns:1fr;gap:32px}
+    .cb-clock{margin-left:0;width:100%}
+    .cb-cta{width:100%;text-align:center}
+    .console{grid-template-columns:1fr}
+    .console .left{border-right:none;border-bottom:1px solid rgba(0,229,255,.2)}
+    .set-row{grid-template-columns:60px 1fr;gap:12px}
+    .set-row .venue, .set-row .price-cell{grid-column:1/-1}
+    .set-row .price-cell{text-align:left}
+    .sec-head{grid-template-columns:1fr}
+    .sec-head .desc{text-align:left}
+    footer{grid-template-columns:1fr 1fr}
+    .topbar nav{display:none}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="#" class="logo">音 眞 人</a>
+    <span class="live-dot">LIVE NOW · 12.20 SHOWCASE</span>
+    <nav>
+      <a href="v5-bands.html#manifesto">Manifesto</a>
+      <a href="v5-bands.html">Bands</a>
+      <a href="v5-tickets.html">Shows</a>
+      <a href="v5-studio.html">Studio</a>
+    </nav>
+    <a class="ticket-btn" href="v5-join.html">→ Join</a>
+  </div>
+
+  <!-- COUNTDOWN BANNER -->
+  <div class="countdown-bar">
+    <div class="cb-inner">
+      <div class="cb-label">
+        <span class="cb-tag">/ NEXT SHOWCASE</span>
+        <span class="cb-title">WINTER SHOWCASE 2025 · 12.20 SAT</span>
+      </div>
+      <div class="cb-clock" id="cdown">
+        <div class="cb-unit"><b id="cd-d">--</b><small>DAYS</small></div>
+        <div class="cb-unit"><b id="cd-h">--</b><small>HRS</small></div>
+        <div class="cb-unit"><b id="cd-m">--</b><small>MIN</small></div>
+        <div class="cb-unit"><b id="cd-s">--</b><small>SEC</small></div>
+      </div>
+      <a class="cb-cta" href="v5-tickets.html">→ TICKETS</a>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div>
+      <div class="meta-tag">/ EUMJININ COLLECTIVE / EST. 2018 / SEOUL</div>
+      <h1>
+        <span class="l1">음악에</span>
+        <span class="l2"><span class="glitch neon-p" data-text="진심">진심</span><span class="neon-c">.</span></span>
+        <span class="l3 neon-m">REAL ONES ONLY</span>
+      </h1>
+      <p class="lede">
+        서울 지하 1층에서 매주 모여 합주하는 <em>6개 밴드 · 40명의 음악가</em>. 잘하는 사람보다 진짜 좋아하는 사람을 찾고 있습니다.
+      </p>
+      <div class="hero-cta">
+        <a class="btn solid" href="v5-join.html">→ Apply Now</a>
+        <a class="btn glow" href="v5-tickets.html">Showcase 12.20</a>
+      </div>
+
+      <!-- NOW SPINNING (audio preview) -->
+      <div class="now-spin" id="nowSpin">
+        <div class="ns-cover" id="nsCover">
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="nsg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#c026ff"/>
+                <stop offset="100%" stop-color="#ff2e88"/>
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#nsg)"/>
+            <text x="50" y="42" text-anchor="middle" fill="#08060f" font-family="Black Han Sans" font-size="22" font-weight="900">BANG!</text>
+            <text x="50" y="66" text-anchor="middle" fill="#08060f" font-family="Black Han Sans" font-size="22" font-weight="900">BANG!</text>
+            <text x="50" y="86" text-anchor="middle" fill="#08060f" font-family="Major Mono Display" font-size="6" letter-spacing="2">LP · 2025</text>
+          </svg>
+        </div>
+        <div class="ns-info">
+          <div class="ns-tag">/ NOW SPINNING</div>
+          <div class="ns-title">사이렌 (Siren)</div>
+          <div class="ns-by">BANG!BANG! · 1st LP「폭발음」 trk 03</div>
+          <div class="ns-controls">
+            <button class="ns-play" id="nsPlay" aria-label="play">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="ns-bar"><div class="ns-fill" id="nsFill"></div></div>
+            <span class="ns-time" id="nsTime">0:00 / 0:30</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-vis">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <div class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </section>
+
+  <div class="marq">
+    <div class="track">
+      <span>WINTER SHOWCASE 12.20</span><span>NEW MEMBERS WANTED</span><span>BANG!BANG! 1ST LP RELEASE</span><span>ART HALL K · NIGHTLY</span><span>NO POSERS</span>
+      <span>WINTER SHOWCASE 12.20</span><span>NEW MEMBERS WANTED</span><span>BANG!BANG! 1ST LP RELEASE</span><span>ART HALL K · NIGHTLY</span><span>NO POSERS</span>
+    </div>
+  </div>
+
+  <section class="block" id="manifesto">
+    <div class="sec-head">
+      <span class="num">/ 01</span>
+      <h3>운영 <em>원칙</em></h3>
+      <p class="desc">우리가 7년간 지켜온 다섯 가지. 새로 들어오는 멤버에게 처음 건네는 서약.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num">01</div><h4>진심이 먼저</h4><p>실력은 따라온다. 진심은 가르칠 수 없다.</p></div>
+      <div class="stat"><div class="num">02</div><h4>장르 무관</h4><p>포크부터 메탈까지. 좋으면 한다.</p></div>
+      <div class="stat"><div class="num">03</div><h4>합주 &gt; 회식</h4><p>매주 합주, 회식은 분기에 한 번.</p></div>
+      <div class="stat"><div class="num">04</div><h4>NO 텃세</h4><p>모두의 첫날을 우리는 기억한다.</p></div>
+      <div class="stat"><div class="num">05</div><h4>음악 정치만 OK</h4><p>실제 정치는 밖에서, 음악 정치는 환영.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="bands">
+    <div class="sec-head">
+      <span class="num">/ 02</span>
+      <h3>로스터 <em>06</em></h3>
+      <p class="desc">소속 6개 밴드. 매월 합동 합주, 분기별 자체 쇼케이스.</p>
+    </div>
+    <div class="ticket-grid">
+      <a class="ticket" href="v5-bands.html#nokeumsil"><div class="row1"><span class="id">/ 01 · INDIE-ROCK</span><span class="est">EST. 2019</span></div><h4>녹음실 도둑</h4><div class="members">5인조 · Vox / G / G / B / D</div><div class="tags"><span class="tag">indie</span><span class="tag">rock</span></div></a>
+      <a class="ticket" href="v5-bands.html#dawn3"><div class="row1"><span class="id">/ 02 · DREAM-POP</span><span class="est">EST. 2020</span></div><h4>새벽 3시</h4><div class="members">4인조 · Vox / G / Synth / D</div><div class="tags"><span class="tag">dream pop</span></div></a>
+      <a class="ticket" href="v5-bands.html#bangbang"><div class="row1"><span class="id">/ 03 · PUNK-HC</span><span class="est">EST. 2021</span></div><h4>BANG!BANG!</h4><div class="members">3인조 · Vox+G / B / D</div><div class="tags"><span class="tag">punk</span><span class="tag">hardcore</span></div></a>
+      <a class="ticket" href="v5-bands.html#monday"><div class="row1"><span class="id">/ 04 · EMO-ALT</span><span class="est">EST. 2022</span></div><h4>월요일 우울증</h4><div class="members">4인조 · Vox / G / B / D</div><div class="tags"><span class="tag">emo</span><span class="tag">alt</span></div></a>
+      <a class="ticket" href="v5-bands.html#cat"><div class="row1"><span class="id">/ 05 · FOLK</span><span class="est">EST. 2023</span></div><h4>고양이 발자국</h4><div class="members">3인조 · Vox+G / Vln / Cajón</div><div class="tags"><span class="tag">folk</span></div></a>
+      <a class="ticket" href="v5-bands.html#kimchi"><div class="row1"><span class="id">/ 06 · METAL-FUSION</span><span class="est">EST. 2024</span></div><h4>HEAVY 김치</h4><div class="members">5인조 · Vox / G / G / B / D</div><div class="tags"><span class="tag">metal</span><span class="tag">fusion</span></div></a>
+    </div>
+  </section>
+
+  <section class="block" id="shows">
+    <div class="sec-head">
+      <span class="num">/ 03</span>
+      <h3>SET<em>LIST</em></h3>
+      <p class="desc">다가오는 공연. 회원 30% 할인.</p>
+    </div>
+    <div class="setlist">
+      <a class="set-row" href="v5-tickets.html?show=showcase"><div class="idx">/01</div><div class="date">12.20<small>SAT 19:00</small></div><div><h5>Winter Showcase 2025</h5><p>5팀 합동 + 부산 게스트 컬렉티브</p></div><div class="venue">ROLLING HALL<small>HONGDAE</small></div><div class="price-cell"><div class="p">₩25,000</div><small>회원 ₩17,500</small></div></a>
+      <a class="set-row" href="v5-tickets.html?show=bangbang"><div class="idx">/02</div><div class="date">01.18<small>SUN 20:00</small></div><div><h5>BANG!BANG! 단독공연</h5><p>정규 1집 발매 기념, 전곡 라이브</p></div><div class="venue">CLUB FF<small>HONGDAE</small></div><div class="price-cell"><div class="p">₩30,000</div><small>회원 ₩21,000</small></div></a>
+      <a class="set-row" href="v5-tickets.html?show=valentine"><div class="idx">/03</div><div class="date">02.14<small>SAT 19:30</small></div><div><h5>새벽 3시 × 고양이 발자국</h5><p>어쿠스틱 합동 · 발렌타인 스페셜</p></div><div class="venue">JEBI-DABANG<small>SAMCHEONG</small></div><div class="price-cell"><div class="p">₩18,000</div><small>회원 ₩12,600</small></div></a>
+    </div>
+  </section>
+
+  <section class="block" id="practice">
+    <div class="sec-head">
+      <span class="num">/ 04</span>
+      <h3>STUDIO <em>K</em></h3>
+      <p class="desc">연남동 지하 1층 60평. 풀 백라인 · 24시까지 운영.</p>
+    </div>
+    <div class="console">
+      <div class="left">
+        <div class="label">/ ART HALL K · BASEMENT 01</div>
+        <h3>지하에서<br/>녹음하고,<br/>지하에서 <span class="neon-c">살고.</span></h3>
+        <p class="desc">드럼·기타·베이스 풀세팅, 보컬 부스, 마이크 6채널, 모니터 4기. 60평 합주실은 50명까지 수용 가능한 자체 쇼케이스 공간으로도 사용.</p>
+        <div class="specs">
+          <div class="spec"><dt>AREA</dt><dd>200 ㎡</dd></div>
+          <div class="spec"><dt>CAPACITY</dt><dd>60 STANDING</dd></div>
+          <div class="spec"><dt>HOURS</dt><dd>UNTIL 24:00</dd></div>
+          <div class="spec"><dt>RECORDING</dt><dd>FREE · USB</dd></div>
+        </div>
+      </div>
+      <div class="right">
+        <h4>/ RATE CARD</h4>
+        <div class="rate"><span class="name">회원 (시간당)</span><span class="v">₩8,000</span></div>
+        <div class="rate"><span class="name">비회원 (시간당)</span><span class="v">₩15,000</span></div>
+        <div class="rate"><span class="name">녹음 세션 (정액)</span><span class="v">₩50,000</span></div>
+        <div class="rate"><span class="name">쇼케이스 대관</span><span class="v">₩200,000</span></div>
+        <a href="v5-studio.html">→ BOOK A SLOT</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="join-hero" id="join">
+    <div class="tag">/ MEMBERSHIP · 2026 INTAKE OPEN</div>
+    <h3>JOIN THE <span class="glow-p">NOISE.</span></h3>
+    <p>악기 한번이라도 잡아본 사람, 새벽 3시에 가사 한 줄 때문에 잠 못 드는 사람, 라이브 한 번 안 해보고 죽긴 싫은 사람 — 다 환영합니다.</p>
+    <a class="btn solid" href="v5-join.html">→ APPLY NOW</a>
+  </section>
+
+  <footer>
+    <div>
+      <div class="nameplate">音眞人</div>
+      <p style="color:var(--mute);font-size:14px;line-height:1.7">An independent music collective<br/>operating from a basement in Seoul since 2018.</p>
+    </div>
+    <div><h6>/ CONTACT</h6><ul><li>eumjinin@gmail.com</li><li>@eumjinin_official</li></ul></div>
+    <div><h6>/ STUDIO</h6><ul><li>Art Hall K, B1</li><li>Yeonnam-dong, Seoul</li></ul></div>
+    <div><h6>/ HOURS</h6><ul><li>Mon–Fri 18:00 — 24:00</li><li>Sat–Sun 12:00 — 24:00</li></ul></div>
+    <div class="end"><span>© 2025 EUMJININ</span><span>STAY LOUD · STAY REAL</span></div>
+  </footer>
+
+  <script>
+  // Countdown to 2025-12-20 19:00 KST
+  (function(){
+    const target = new Date('2025-12-20T19:00:00+09:00').getTime();
+    const $d=document.getElementById('cd-d'),$h=document.getElementById('cd-h'),$m=document.getElementById('cd-m'),$s=document.getElementById('cd-s');
+    const pad=n=>String(Math.max(0,n)).padStart(2,'0');
+    function tick(){
+      const diff = target - Date.now();
+      if(diff<=0){$d.textContent='00';$h.textContent='00';$m.textContent='00';$s.textContent='LIVE';return}
+      const d=Math.floor(diff/86400000), h=Math.floor(diff/3600000)%24, m=Math.floor(diff/60000)%60, s=Math.floor(diff/1000)%60;
+      $d.textContent=pad(d);$h.textContent=pad(h);$m.textContent=pad(m);$s.textContent=pad(s);
+    }
+    tick();setInterval(tick,1000);
+  })();
+
+  // Now Spinning — synthetic 30s preview using WebAudio (no external file required)
+  (function(){
+    const playBtn=document.getElementById('nsPlay');
+    const cover=document.getElementById('nsCover');
+    const fill=document.getElementById('nsFill');
+    const timeEl=document.getElementById('nsTime');
+    let ac, master, osc1, osc2, lfo, kickInt, startedAt=0, raf=0, playing=false;
+    const TOTAL=30;
+    const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+    function update(){
+      if(!playing)return;
+      const now = ac.currentTime - startedAt;
+      if(now>=TOTAL){stop();return}
+      fill.style.width=(now/TOTAL*100)+'%';
+      timeEl.textContent=fmt(now)+' / 0:30';
+      raf=requestAnimationFrame(update);
+    }
+    function buildKick(){
+      const buf=ac.createBuffer(1, ac.sampleRate*0.3, ac.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++){d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2.5)}
+      return buf;
+    }
+    function start(){
+      if(!ac){ac = new (window.AudioContext||window.webkitAudioContext)()}
+      if(ac.state==='suspended') ac.resume();
+      master = ac.createGain(); master.gain.value=.15; master.connect(ac.destination);
+      osc1 = ac.createOscillator(); osc1.type='sawtooth'; osc1.frequency.value=110;
+      osc2 = ac.createOscillator(); osc2.type='square'; osc2.frequency.value=164.81;
+      const lp = ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900; lp.Q.value=8;
+      lfo = ac.createOscillator(); lfo.frequency.value=.4;
+      const lfoGain=ac.createGain(); lfoGain.gain.value=500;
+      lfo.connect(lfoGain); lfoGain.connect(lp.frequency);
+      osc1.connect(lp); osc2.connect(lp); lp.connect(master);
+      osc1.start(); osc2.start(); lfo.start();
+      const kickBuf=buildKick();
+      kickInt=setInterval(()=>{
+        if(!playing)return;
+        const src=ac.createBufferSource(); src.buffer=kickBuf;
+        const g=ac.createGain(); g.gain.value=.5;
+        const flt=ac.createBiquadFilter(); flt.type='lowpass'; flt.frequency.value=180;
+        src.connect(flt); flt.connect(g); g.connect(master);
+        src.start();
+      },500);
+      startedAt=ac.currentTime; playing=true;
+      cover.classList.add('playing');
+      playBtn.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+      raf=requestAnimationFrame(update);
+    }
+    function stop(){
+      if(!playing)return;
+      playing=false;
+      try{osc1.stop();osc2.stop();lfo.stop()}catch(e){}
+      clearInterval(kickInt);
+      cover.classList.remove('playing');
+      playBtn.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+      cancelAnimationFrame(raf);
+      fill.style.width='0%'; timeEl.textContent='0:00 / 0:30';
+    }
+    playBtn.addEventListener('click',()=>{ playing?stop():start() });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>음진인 — 인디/포크 ver.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=DM+Serif+Display&family=Fraunces:ital,wght@0,400;0,600;0,800;1,400;1,600&family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#fcf6ec;
+    --peach:#f6c9a8;
+    --coral:#e87a5d;
+    --rose:#e9a3a3;
+    --mint:#b6d3c1;
+    --sky:#a9c8df;
+    --butter:#fae29a;
+    --ink:#3a2a22;
+    --ink-mute:#7a655a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--cream);color:var(--ink);font-family:"Gowun Batang","Fraunces",serif;-webkit-font-smoothing:antialiased}
+  body{
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(232,122,93,.08) 0 80px, transparent 120px),
+      radial-gradient(circle at 90% 70%, rgba(169,200,223,.12) 0 100px, transparent 160px),
+      radial-gradient(circle at 50% 95%, rgba(250,226,154,.15) 0 100px, transparent 180px);
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* ============ NAV ============ */
+  nav.top{
+    display:flex;align-items:center;gap:24px;
+    padding:24px 40px;max-width:1280px;margin:0 auto;
+  }
+  .logo-mark{
+    display:flex;align-items:center;gap:12px;
+    font-family:"DM Serif Display",serif;font-size:28px;
+  }
+  .logo-mark .badge{
+    width:46px;height:46px;border-radius:50%;
+    background:var(--coral);color:var(--cream);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Gowun Batang",serif;font-weight:700;font-size:18px;
+    transform:rotate(-6deg);
+  }
+  nav.top .links{margin-left:auto;display:flex;gap:28px;font-size:15px}
+  nav.top .links a{position:relative;padding:4px 0}
+  nav.top .links a:hover{color:var(--coral)}
+  nav.top .cta{
+    background:var(--ink);color:var(--cream);
+    padding:10px 18px;border-radius:999px;font-size:14px;
+    transition:transform .15s;
+  }
+  nav.top .cta:hover{transform:translateY(-2px)}
+
+  /* ============ HERO ============ */
+  .hero{max-width:1280px;margin:20px auto 0;padding:40px;position:relative}
+  .hero-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:center}
+  .hero h1{
+    font-family:"Fraunces",serif;font-weight:600;font-style:italic;
+    font-size:clamp(64px,9vw,128px);line-height:.95;letter-spacing:-.03em;
+  }
+  .hero h1 .underline{
+    position:relative;display:inline-block;
+  }
+  .hero h1 .underline::after{
+    content:"";position:absolute;left:-4px;right:-4px;bottom:6px;height:14px;
+    background:var(--butter);z-index:-1;border-radius:8px;transform:rotate(-1deg);
+  }
+  .hero h1 .pop{color:var(--coral)}
+  .hero .ribbon{
+    display:inline-block;font-family:"Caveat",cursive;font-size:24px;
+    background:var(--rose);color:var(--cream);padding:4px 14px;border-radius:999px;
+    transform:rotate(-3deg);margin-bottom:18px;
+  }
+  .hero .lede{
+    font-size:18px;line-height:1.8;margin:24px 0 32px;max-width:520px;color:var(--ink-mute);
+  }
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:14px 22px;border-radius:999px;
+    font-size:15px;font-weight:600;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn.primary{background:var(--coral);color:var(--cream);box-shadow:0 6px 0 #b85a40}
+  .btn.primary:hover{box-shadow:0 4px 0 #b85a40}
+  .btn.secondary{background:var(--cream);border:2px solid var(--ink);color:var(--ink)}
+
+  /* illustration */
+  .illust{
+    aspect-ratio:1/1;position:relative;
+  }
+  .blob{
+    position:absolute;border-radius:50%;
+  }
+  .blob.b1{width:60%;height:60%;background:var(--peach);top:5%;left:15%}
+  .blob.b2{width:36%;height:36%;background:var(--mint);bottom:8%;left:8%}
+  .blob.b3{width:30%;height:30%;background:var(--sky);top:8%;right:5%}
+  .blob.b4{width:24%;height:24%;background:var(--butter);bottom:18%;right:14%}
+  .star{position:absolute;color:var(--coral);font-family:"DM Serif Display",serif;font-size:32px}
+  .star.s1{top:0;right:30%;transform:rotate(15deg)}
+  .star.s2{bottom:5%;left:50%;color:var(--ink)}
+
+  /* central illustration: simple guitar/cassette/cup */
+  .illust-svg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
+  .illust-svg svg{width:70%;height:70%;filter:drop-shadow(8px 8px 0 rgba(58,42,34,.12))}
+
+  .scribble{
+    font-family:"Nanum Pen Script",cursive;font-size:24px;color:var(--ink);
+    position:absolute;line-height:1.2;
+  }
+  .scribble.sc1{top:6%;right:-4%;transform:rotate(8deg);max-width:140px}
+  .scribble.sc1::after{content:"↘";display:inline-block;margin-left:6px}
+
+  /* ============ MARQUEE ============ */
+  .marq{
+    background:var(--ink);color:var(--cream);
+    padding:18px 0;overflow:hidden;
+    margin:60px 0;transform:rotate(-1deg);
+  }
+  .marq .track{
+    display:inline-flex;gap:36px;white-space:nowrap;
+    font-family:"Fraunces",serif;font-style:italic;font-size:24px;
+    animation:scroll 40s linear infinite;
+  }
+  .marq .track span{display:flex;align-items:center;gap:36px}
+  .marq .track span::after{content:"✿";color:var(--coral);font-size:18px}
+  @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* ============ SECTION GENERIC ============ */
+  section.block{max-width:1280px;margin:0 auto;padding:80px 40px}
+  .sec-head{display:flex;align-items:end;gap:24px;margin-bottom:48px;flex-wrap:wrap}
+  .sec-head .num-circle{
+    width:80px;height:80px;border-radius:50%;background:var(--mint);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"DM Serif Display",serif;font-size:32px;
+  }
+  .sec-head h3{font-family:"Fraunces",serif;font-weight:600;font-size:64px;line-height:.95;letter-spacing:-.02em}
+  .sec-head h3 em{font-style:italic;color:var(--coral)}
+  .sec-head .desc{font-size:15px;color:var(--ink-mute);max-width:340px;margin-left:auto;line-height:1.6}
+
+  /* manifesto cards */
+  .manifesto-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}
+  .m-card{
+    background:var(--cream);border:2px solid var(--ink);
+    border-radius:24px;padding:28px;position:relative;
+    transition:transform .2s;
+  }
+  .m-card:hover{transform:translateY(-4px) rotate(-.5deg)}
+  .m-card:nth-child(1){background:var(--peach)}
+  .m-card:nth-child(2){background:var(--mint)}
+  .m-card:nth-child(3){background:var(--sky)}
+  .m-card:nth-child(4){background:var(--butter)}
+  .m-card:nth-child(5){background:var(--rose)}
+  .m-card .num{
+    font-family:"DM Serif Display",serif;font-size:48px;line-height:.9;
+    color:var(--ink);margin-bottom:8px;
+  }
+  .m-card h4{font-family:"Fraunces",serif;font-weight:600;font-size:22px;line-height:1.2;margin-bottom:8px}
+  .m-card p{font-size:14px;line-height:1.6;color:var(--ink)}
+
+  /* bands */
+  .bands-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+  .band-card{
+    background:var(--cream);border-radius:24px;padding:24px;
+    border:2px solid var(--ink);position:relative;overflow:hidden;
+    transition:transform .2s;
+  }
+  .band-card:hover{transform:translateY(-4px)}
+  .band-card::before{
+    content:"";position:absolute;width:140%;height:120px;border-radius:50%;
+    background:var(--peach);top:-40px;left:-20%;z-index:0;
+  }
+  .band-card:nth-child(2)::before{background:var(--mint)}
+  .band-card:nth-child(3)::before{background:var(--rose)}
+  .band-card:nth-child(4)::before{background:var(--sky)}
+  .band-card:nth-child(5)::before{background:var(--butter)}
+  .band-card:nth-child(6)::before{background:var(--coral)}
+  .band-card .icon-circle{
+    width:72px;height:72px;border-radius:50%;background:var(--cream);
+    border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;
+    font-family:"DM Serif Display",serif;font-size:28px;position:relative;z-index:1;margin-bottom:18px;
+  }
+  .band-card h4{font-family:"Fraunces",serif;font-weight:600;font-size:26px;margin-bottom:4px;position:relative;z-index:1}
+  .band-card .meta{font-size:13px;color:var(--ink-mute);margin-bottom:14px;position:relative;z-index:1}
+  .band-card .tags{display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:1}
+  .band-card .tag{
+    font-size:12px;padding:4px 10px;border-radius:999px;
+    background:var(--cream);border:1.5px solid var(--ink);
+  }
+
+  /* shows */
+  .shows-list{display:grid;gap:18px}
+  .show-row{
+    display:grid;grid-template-columns:120px 1fr auto;gap:24px;align-items:center;
+    background:var(--cream);border:2px solid var(--ink);border-radius:20px;
+    padding:24px 28px;transition:transform .15s;
+  }
+  .show-row:hover{transform:translateX(4px)}
+  .show-row .date-pill{
+    background:var(--coral);color:var(--cream);
+    border-radius:16px;padding:14px 8px;text-align:center;
+  }
+  .show-row .date-pill .d{font-family:"DM Serif Display",serif;font-size:32px;line-height:1}
+  .show-row .date-pill .m{font-size:12px;letter-spacing:.1em;margin-top:4px}
+  .show-row h5{font-family:"Fraunces",serif;font-weight:600;font-size:22px;margin-bottom:4px}
+  .show-row p{font-size:14px;color:var(--ink-mute)}
+  .show-row .price{font-family:"Fraunces",serif;font-style:italic;font-size:22px;text-align:right}
+  .show-row .price small{display:block;font-size:12px;font-style:normal;color:var(--ink-mute);margin-top:2px}
+
+  /* practice */
+  .practice-card{
+    background:linear-gradient(135deg, var(--mint), var(--sky));
+    border:2px solid var(--ink);border-radius:32px;padding:48px;
+    display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;
+    box-shadow:0 12px 0 rgba(58,42,34,.08);
+  }
+  .practice-card h3{font-family:"Fraunces",serif;font-style:italic;font-weight:600;font-size:64px;line-height:.95;margin-bottom:14px}
+  .practice-card .scribble-tag{
+    font-family:"Caveat",cursive;font-size:22px;color:var(--coral);
+    background:var(--cream);padding:4px 14px;border-radius:999px;
+    display:inline-block;transform:rotate(-2deg);margin-bottom:14px;
+  }
+  .practice-card p{font-size:16px;line-height:1.7;margin-bottom:20px}
+  .practice-card ul{list-style:none;display:grid;gap:8px;margin-bottom:24px;font-size:15px}
+  .practice-card li{display:flex;align-items:center;gap:10px}
+  .practice-card li::before{
+    content:"";width:18px;height:18px;border-radius:50%;background:var(--coral);
+    display:inline-block;flex-shrink:0;
+  }
+  .rate-tile{
+    background:var(--cream);border:2px solid var(--ink);border-radius:20px;
+    padding:24px;
+  }
+  .rate-tile h4{font-family:"Caveat",cursive;font-size:28px;color:var(--coral);margin-bottom:12px}
+  .rate-tile .row{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px dashed var(--ink-mute)}
+  .rate-tile .row:last-child{border-bottom:none}
+  .rate-tile .row .name{font-size:14px}
+  .rate-tile .row .price{font-family:"Fraunces",serif;font-style:italic;font-size:20px}
+  .rate-tile a{
+    display:block;text-align:center;margin-top:14px;
+    background:var(--ink);color:var(--cream);
+    padding:12px;border-radius:12px;font-size:14px;font-weight:600;
+  }
+
+  /* join */
+  .join-cta{
+    background:var(--coral);color:var(--cream);border-radius:32px;
+    padding:80px 40px;text-align:center;position:relative;overflow:hidden;margin-top:40px;
+  }
+  .join-cta::before, .join-cta::after{
+    content:"";position:absolute;border-radius:50%;
+  }
+  .join-cta::before{width:200px;height:200px;background:var(--rose);top:-60px;left:-40px}
+  .join-cta::after{width:160px;height:160px;background:var(--butter);bottom:-50px;right:-30px}
+  .join-cta > *{position:relative;z-index:1}
+  .join-cta .scribble-tag{
+    font-family:"Caveat",cursive;font-size:24px;color:var(--cream);background:rgba(255,255,255,.15);
+    padding:4px 16px;border-radius:999px;display:inline-block;margin-bottom:18px;
+  }
+  .join-cta h3{font-family:"Fraunces",serif;font-weight:600;font-style:italic;font-size:clamp(48px,8vw,96px);line-height:1;margin-bottom:18px}
+  .join-cta p{font-size:18px;max-width:560px;margin:0 auto 32px;line-height:1.7}
+  .join-cta .btn{background:var(--cream);color:var(--ink);box-shadow:0 6px 0 rgba(0,0,0,.2)}
+
+  footer{padding:60px 40px 40px;max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:32px}
+  footer h6{font-family:"Caveat",cursive;font-size:22px;color:var(--coral);margin-bottom:8px}
+  footer ul{list-style:none}
+  footer li{font-size:14px;line-height:1.8}
+  footer .end{
+    grid-column:1/-1;border-top:2px dashed var(--ink-mute);padding-top:18px;margin-top:18px;
+    text-align:center;font-size:13px;color:var(--ink-mute);
+  }
+
+  @media(max-width:900px){
+    .hero-grid, .practice-card{grid-template-columns:1fr}
+    .show-row{grid-template-columns:80px 1fr;gap:14px}
+    .show-row .price{grid-column:1/-1;text-align:left}
+    footer{grid-template-columns:1fr 1fr}
+    nav.top .links{display:none}
+  }
+</style>
+</head>
+<body>
+  <nav class="top">
+    <a class="logo-mark" href="#">
+      <span class="badge">音</span>
+      <span>음진인</span>
+    </a>
+    <div class="links">
+      <a href="#manifesto">매니페스토</a>
+      <a href="#bands">밴드</a>
+      <a href="#shows">공연</a>
+      <a href="#practice">연습실</a>
+    </div>
+    <a class="cta" href="#join">가입 신청 →</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-grid">
+      <div>
+        <span class="ribbon">since 2018 · seoul</span>
+        <h1>음악에<br/><span class="underline">진심</span>인,<br/><span class="pop">조금</span> 다정한 사람들의<br/><em>모임이에요.</em></h1>
+        <p class="lede">서울 한 켠 지하실에서 매주 모여 합주하고, 가사 한 줄에 새벽까지 매달리는 사람들. 잘하는 것보다 진심이 먼저예요.</p>
+        <div class="hero-cta">
+          <a class="btn primary" href="#join">함께 음악할래요? →</a>
+          <a class="btn secondary" href="#shows">다가오는 공연</a>
+        </div>
+      </div>
+      <div class="illust">
+        <div class="blob b1"></div>
+        <div class="blob b2"></div>
+        <div class="blob b3"></div>
+        <div class="blob b4"></div>
+        <span class="star s1">✦</span>
+        <span class="star s2">✿</span>
+        <div class="illust-svg">
+          <svg viewBox="0 0 200 200" fill="none">
+            <!-- guitar body -->
+            <ellipse cx="100" cy="130" rx="50" ry="55" fill="#3a2a22"/>
+            <ellipse cx="100" cy="130" rx="44" ry="49" fill="#fae29a"/>
+            <circle cx="100" cy="130" r="18" fill="#3a2a22"/>
+            <!-- neck -->
+            <rect x="92" y="30" width="16" height="80" fill="#3a2a22"/>
+            <rect x="94" y="30" width="12" height="80" fill="#7a655a"/>
+            <!-- head -->
+            <rect x="86" y="20" width="28" height="18" rx="4" fill="#3a2a22"/>
+            <!-- strings -->
+            <line x1="96" y1="38" x2="96" y2="170" stroke="#fcf6ec" stroke-width="0.8"/>
+            <line x1="100" y1="38" x2="100" y2="170" stroke="#fcf6ec" stroke-width="0.8"/>
+            <line x1="104" y1="38" x2="104" y2="170" stroke="#fcf6ec" stroke-width="0.8"/>
+          </svg>
+        </div>
+        <div class="scribble sc1">매주 합주해요!</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="marq">
+    <div class="track">
+      <span>매주 화요일 합주</span><span>2025 겨울 쇼케이스</span><span>새 멤버 모집중</span><span>장르 무관</span><span>지하 1층 Art Hall K</span>
+      <span>매주 화요일 합주</span><span>2025 겨울 쇼케이스</span><span>새 멤버 모집중</span><span>장르 무관</span><span>지하 1층 Art Hall K</span>
+    </div>
+  </div>
+
+  <section class="block" id="manifesto">
+    <div class="sec-head">
+      <div class="num-circle">01</div>
+      <h3>우리가 <em>믿는</em><br/>다섯 가지</h3>
+      <p class="desc">잘하는 것보다 진심으로. 즐거움이 먼저, 완성도는 그 다음. 우리 동네 작은 모임이 지키는 약속들.</p>
+    </div>
+    <div class="manifesto-grid">
+      <div class="m-card"><div class="num">01</div><h4>진심이면 충분해요</h4><p>잘하지 않아도 좋아요. 음악을 진심으로 대하는 마음이 우리에겐 가장 중요해요.</p></div>
+      <div class="m-card"><div class="num">02</div><h4>장르는 가리지 않아요</h4><p>좋으면 다 합니다. 포크부터 메탈까지, 듣고 싶은 음악이 있다면 환영이에요.</p></div>
+      <div class="m-card"><div class="num">03</div><h4>합주가 회식보다 자주</h4><p>매주 모입니다. 술자리는 가끔, 합주는 꾸준히.</p></div>
+      <div class="m-card"><div class="num">04</div><h4>처음은 누구나 처음</h4><p>새 멤버에게 텃세는 없어요. 같이 배우고 같이 잘해져요.</p></div>
+      <div class="m-card"><div class="num">05</div><h4>음악만 정치해요</h4><p>모임 안에서 정치 토론은 없어요. 단, 음악 정치는 환영합니다.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="bands">
+    <div class="sec-head">
+      <div class="num-circle" style="background:var(--rose)">02</div>
+      <h3>여섯 개의 <em>작은 우주</em></h3>
+      <p class="desc">현재 활동 중인 6개의 밴드. 각자의 색깔로, 각자의 속도로.</p>
+    </div>
+    <div class="bands-grid">
+      <div class="band-card"><div class="icon-circle">♬</div><h4>녹음실 도둑</h4><div class="meta">2019 · 5인조</div><div class="tags"><span class="tag">indie</span><span class="tag">rock</span></div></div>
+      <div class="band-card"><div class="icon-circle">☾</div><h4>새벽 3시</h4><div class="meta">2020 · 4인조</div><div class="tags"><span class="tag">dream pop</span></div></div>
+      <div class="band-card"><div class="icon-circle">⚡</div><h4>BANG!BANG!</h4><div class="meta">2021 · 3인조</div><div class="tags"><span class="tag">punk</span><span class="tag">hardcore</span></div></div>
+      <div class="band-card"><div class="icon-circle">☁</div><h4>월요일 우울증</h4><div class="meta">2022 · 4인조</div><div class="tags"><span class="tag">emo</span><span class="tag">alt</span></div></div>
+      <div class="band-card"><div class="icon-circle">✿</div><h4>고양이 발자국</h4><div class="meta">2023 · 3인조</div><div class="tags"><span class="tag">folk</span></div></div>
+      <div class="band-card"><div class="icon-circle">♛</div><h4>HEAVY 김치</h4><div class="meta">2024 · 5인조</div><div class="tags"><span class="tag">metal</span><span class="tag">fusion</span></div></div>
+    </div>
+  </section>
+
+  <section class="block" id="shows">
+    <div class="sec-head">
+      <div class="num-circle" style="background:var(--butter)">03</div>
+      <h3>다가오는 <em>공연</em></h3>
+      <p class="desc">회원은 모든 공연 30% 할인. SNS 또는 운영진 DM으로 예매하세요.</p>
+    </div>
+    <div class="shows-list">
+      <div class="show-row">
+        <div class="date-pill"><div class="d">20</div><div class="m">DEC</div></div>
+        <div><h5>Winter Showcase 2025</h5><p>롤링홀 홍대 · 5팀 합동 + 부산 게스트 · 토 19:00</p></div>
+        <div class="price">₩25,000<small>회원 ₩17,500</small></div>
+      </div>
+      <div class="show-row">
+        <div class="date-pill" style="background:var(--mint);color:var(--ink)"><div class="d">18</div><div class="m">JAN</div></div>
+        <div><h5>BANG!BANG! 단독공연</h5><p>club FF · 정규 1집 발매 기념 · 일 20:00</p></div>
+        <div class="price">₩30,000<small>회원 ₩21,000</small></div>
+      </div>
+      <div class="show-row">
+        <div class="date-pill" style="background:var(--rose)"><div class="d">14</div><div class="m">FEB</div></div>
+        <div><h5>새벽 3시 × 고양이 발자국</h5><p>제비다방 · 어쿠스틱 합동 · 토 19:30</p></div>
+        <div class="price">₩18,000<small>회원 ₩12,600</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="practice">
+    <div class="sec-head">
+      <div class="num-circle" style="background:var(--sky)">04</div>
+      <h3>연습실 <em>Art Hall K</em></h3>
+      <p class="desc">연남동 지하 1층, 60평. 풀세트 합주실 + 보컬 부스 + 작은 공연장.</p>
+    </div>
+    <div class="practice-card">
+      <div>
+        <span class="scribble-tag">우리만의 아지트 ✦</span>
+        <h3>지하에서<br/>매일 만나요</h3>
+        <p>드럼·앰프 풀세팅, 마이크 6채널, 모니터 4기. 합주 녹음은 USB 가져오시면 무료. 24시까지 이용 가능해요.</p>
+        <ul>
+          <li>드럼 / 베이스 / 기타 앰프 풀세팅</li>
+          <li>마이크 6채널, 모니터 4기</li>
+          <li>합주 녹음 무료 (USB)</li>
+          <li>심야 24:00까지 운영</li>
+        </ul>
+      </div>
+      <div class="rate-tile">
+        <h4>이용 요금 ✿</h4>
+        <div class="row"><span class="name">회원 (시간당)</span><span class="price">₩8,000</span></div>
+        <div class="row"><span class="name">비회원 (시간당)</span><span class="price">₩15,000</span></div>
+        <div class="row"><span class="name">녹음 세션 (정액)</span><span class="price">₩50,000</span></div>
+        <div class="row"><span class="name">쇼케이스 대관</span><span class="price">₩200,000</span></div>
+        <a href="#">예약 시간표 보기 →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="join">
+    <div class="join-cta">
+      <span class="scribble-tag">함께 해요 ✦</span>
+      <h3>같이 음악<br/>해보지 않을래요?</h3>
+      <p>악기 한번이라도 잡아본 사람, 노래방 마지막까지 안 자고 부르는 사람, 합주실 빌리려고 적금 깬 사람 — 다 환영합니다.</p>
+      <a class="btn" href="#" style="font-size:18px;padding:18px 32px">신청서 작성하기 →</a>
+    </div>
+  </section>
+
+  <footer>
+    <div>
+      <div class="logo-mark"><span class="badge">音</span><span>음진인</span></div>
+      <p style="margin-top:10px;font-size:14px;color:var(--ink-mute)">음악에 진심인 사람들의 작은 모임</p>
+    </div>
+    <div><h6>Contact ✦</h6><ul><li>eumjinin@gmail.com</li><li>@eumjinin_official</li></ul></div>
+    <div><h6>Studio ✿</h6><ul><li>연남동 Art Hall K B1</li><li>서울특별시 마포구</li></ul></div>
+    <div><h6>Hours ☾</h6><ul><li>평일 18:00–24:00</li><li>주말 12:00–24:00</li></ul></div>
+    <div class="end">© 2025 음진인 · made with ♡ in Yeonnam-dong</div>
+  </footer>
+</body>
+</html>
