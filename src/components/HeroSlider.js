@@ -43,14 +43,7 @@ function HeroSlider() {
       {/* 슬라이드 이미지/영상 */}
       {SLIDES.map((slide, i) => {
         const active = i === current;
-        const style = {
-          ...FILL,
-          objectFit: 'cover',
-          opacity: active ? 1 : 0,
-          transition: 'opacity 0.8s ease',
-          zIndex: 0,
-          animation: active && slide.type === 'image' ? 'ken-burns 6s ease-out forwards' : 'none',
-        };
+        const baseStyle = { ...FILL, objectFit: 'cover', opacity: active ? 1 : 0, transition: 'opacity 0.8s ease', zIndex: 0 };
 
         if (slide.type === 'video') {
           return (
@@ -60,12 +53,18 @@ function HeroSlider() {
               src={slide.src}
               muted playsInline preload="auto"
               onEnded={goNext}
-              style={style}
+              style={baseStyle}
             />
           );
         }
         return (
-          <img key={i} src={slide.src} alt="" style={style} />
+          <img
+            key={i}
+            src={slide.src}
+            alt=""
+            className={active ? 'hero-slide-img hero-slide-img-ken' : 'hero-slide-img'}
+            style={baseStyle}
+          />
         );
       })}
 

@@ -421,6 +421,7 @@ main { padding-top: 64px; }
   background: #1e1b4b;
   color: #fff;
   height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
   padding: 0 24px;
   text-align: center;
   overflow: hidden;
@@ -460,8 +461,11 @@ main { padding-top: 64px; }
   object-fit: cover;
   display: block;
 }
-.hero-slide-active .hero-slide-img {
+.hero-slide-img-ken {
   animation: ken-burns 6s ease-out forwards;
+}
+@media (max-width: 600px) {
+  .hero-slide-img-ken { animation: none; }
 }
 @keyframes ken-burns {
   from { transform: scale(1)    translate(0, 0); }
@@ -590,8 +594,39 @@ main { padding-top: 64px; }
 .stat-num { font-size: 2.6rem; font-weight: 800; }
 .stat-label { font-size: 0.9rem; opacity: 0.75; margin-top: 8px; letter-spacing: 0.04em; }
 
+/* 스크롤 힌트 */
+.hero-scroll-hint {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.hero-scroll-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.5);
+}
+.hero-scroll-arrow {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.7);
+  animation: scroll-bounce 1.6s ease-in-out infinite;
+}
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(7px); }
+}
+
 @media (max-width: 600px) {
+  .hero { height: 60dvh; gap: 20px; }
   .hero-title { font-size: 2.2rem; line-height: 1.45; }
+  .hero-scroll-hint { bottom: 16px; }
 }
 
 /* ===== About ===== */
@@ -1348,7 +1383,7 @@ main { padding-top: 64px; }
 /* ===== 모바일 개선 ===== */
 @media (max-width: 600px) {
   /* Hero */
-  .hero { gap: 28px; padding: 0 16px; }
+  .hero { padding: 0 16px; }
   .hero-stats { gap: 28px; padding-bottom: 24px; }
   .hero-actions { gap: 12px; }
   .stat-num { font-size: 2rem; }

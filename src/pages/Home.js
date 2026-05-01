@@ -97,6 +97,11 @@ function Home() {
           <span className="stat-label">음악의 가능성</span>
         </div>
       </div>
+
+      <div className="hero-scroll-hint" style={{ opacity: scrollProgress > 0.02 ? 0 : 1 }}>
+        <span className="hero-scroll-label">SCROLL</span>
+        <span className="hero-scroll-arrow">↓</span>
+      </div>
     </section>
   );
 }
