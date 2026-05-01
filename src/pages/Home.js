@@ -102,13 +102,6 @@ function Home() {
         <span className="hero-scroll-label">SCROLL</span>
         <span className="hero-scroll-arrow">↓</span>
       </div>
-
-      {/* 하단 wave — 히어로와 다음 섹션을 자연스럽게 연결 */}
-      <div className="hero-wave">
-        <svg viewBox="0 0 1440 64" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-          <path d="M0,32 C360,64 1080,0 1440,32 L1440,64 L0,64 Z" fill="#ffffff" />
-        </svg>
-      </div>
     </section>
   );
 }

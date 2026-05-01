@@ -623,19 +623,9 @@ main { padding-top: 64px; }
   50%       { transform: translateY(7px); }
 }
 
-/* 히어로 하단 wave */
-.hero-wave {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  z-index: 4;
-  line-height: 0;
-  pointer-events: none;
-}
 
 @media (max-width: 600px) {
-  .hero { height: 60dvh; gap: 20px; }
+  .hero { gap: 20px; }
   .hero-title { font-size: 2.2rem; line-height: 1.45; }
   .hero-scroll-hint { bottom: 16px; }
 }
