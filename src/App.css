@@ -510,7 +510,7 @@ main { padding-top: 64px; }
 /* 점 인디케이터 */
 .slider-dots {
   position: absolute;
-  bottom: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -597,7 +597,7 @@ main { padding-top: 64px; }
 /* 스크롤 힌트 */
 .hero-scroll-hint {
   position: absolute;
-  bottom: 28px;
+  bottom: 52px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
@@ -621,6 +621,17 @@ main { padding-top: 64px; }
 @keyframes scroll-bounce {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(7px); }
+}
+
+/* 히어로 하단 wave */
+.hero-wave {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  z-index: 4;
+  line-height: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 600px) {
