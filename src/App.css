@@ -5,6 +5,22 @@
   font-style: normal;
 }
 
+/* ===== Scroll Reveal ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* grid 안에서 카드가 reveal div 높이를 채우도록 */
+.spaces-grid .reveal .space-card,
+.values-grid .reveal .value-card {
+  height: 100%;
+}
+
 /* ===== Reset & Base ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
