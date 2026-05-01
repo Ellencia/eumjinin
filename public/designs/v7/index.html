@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>음진인 — 자연/유기적 ver.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,300;1,400&family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ede4d3;
+    --paper-2:#e0d4bd;
+    --bark:#5a3f2a;
+    --bark-2:#3a2818;
+    --moss:#6b7a4b;
+    --moss-2:#4d5a36;
+    --tea:#a87c4f;
+    --tea-2:#7e5a36;
+    --terra:#a85a3a;
+    --stone:#8a7e6c;
+    --ink:#2a2018;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:"Gowun Batang","Noto Serif KR",serif;-webkit-font-smoothing:antialiased}
+  /* wood-grain & paper texture */
+  body{
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='w'><feTurbulence type='turbulence' baseFrequency='0.012 0.5' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .25  0 0 0 0 .16  0 0 0 .12 0'/></filter><rect width='100%25' height='100%25' filter='url(%23w)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .42  0 0 0 0 .32  0 0 0 0 .2  0 0 0 .08 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-size:600px 600px, 400px 400px;
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* TOPBAR */
+  .topbar{
+    padding:24px 32px;display:flex;align-items:center;gap:32px;
+    border-bottom:1px solid rgba(58,40,24,.2);
+    position:sticky;top:0;z-index:30;
+    background:rgba(237,228,211,.92);backdrop-filter:blur(8px);
+  }
+  .leaf-mark{
+    width:44px;height:44px;border-radius:50% 0 50% 50%;
+    background:var(--moss);transform:rotate(-45deg);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--paper);font-family:"Cormorant Garamond",serif;font-style:italic;font-size:22px;
+  }
+  .leaf-mark span{transform:rotate(45deg)}
+  .topbar .name{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:24px;color:var(--bark-2)}
+  .topbar .name small{display:block;font-family:"Gowun Batang",serif;font-style:normal;font-size:11px;letter-spacing:.4em;color:var(--stone);margin-top:2px}
+  .topbar nav{margin-left:auto;display:flex;gap:28px;font-size:14px;color:var(--bark-2)}
+  .topbar nav a{position:relative;transition:color .2s}
+  .topbar nav a:hover{color:var(--moss)}
+  .btn-tea{
+    background:var(--tea);color:var(--paper);
+    padding:10px 18px;border-radius:999px;font-size:13px;
+    transition:background .2s;
+  }
+  .btn-tea:hover{background:var(--tea-2)}
+
+  /* HERO */
+  .hero{
+    max-width:1280px;margin:0 auto;padding:80px 32px 60px;
+    display:grid;grid-template-columns:1.2fr 1fr;gap:60px;align-items:center;position:relative;
+  }
+  .hero h1{
+    font-family:"Cormorant Garamond",serif;font-weight:500;
+    font-size:clamp(64px,9vw,128px);line-height:1;letter-spacing:-.02em;color:var(--bark-2);
+    margin-bottom:24px;
+  }
+  .hero h1 em{font-style:italic;font-weight:400;color:var(--moss-2)}
+  .hero h1 .leaf{display:inline-block;color:var(--terra);transform:rotate(-2deg)}
+  .hero .label{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:"Gowun Batang",serif;font-size:13px;letter-spacing:.3em;color:var(--stone);
+    margin-bottom:20px;
+  }
+  .hero .label::before{content:"";width:30px;height:1px;background:var(--stone)}
+  .hero .lede{
+    font-family:"Gowun Batang",serif;font-size:17px;line-height:1.95;color:var(--bark-2);
+    max-width:520px;margin-bottom:36px;
+  }
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:14px 24px;border-radius:999px;
+    font-family:"Gowun Batang",serif;font-size:14px;
+    transition:all .2s;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn.bark{background:var(--bark-2);color:var(--paper)}
+  .btn.bark:hover{background:var(--moss-2)}
+  .btn.line{background:transparent;border:1px solid var(--bark-2);color:var(--bark-2)}
+  .btn.line:hover{background:var(--bark-2);color:var(--paper)}
+
+  /* hero visual: layered organic shapes (cup of tea + leaf) */
+  .hero-vis{aspect-ratio:1/1;position:relative}
+  .hero-vis svg{width:100%;height:100%;filter:drop-shadow(8px 12px 0 rgba(58,40,24,.08))}
+  .hero-vis .floating{
+    position:absolute;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:18px;color:var(--moss-2);
+    background:var(--paper);padding:6px 14px;border-radius:999px;
+    border:1px solid var(--bark-2);
+  }
+  .hero-vis .f1{top:8%;right:0;transform:rotate(-4deg)}
+  .hero-vis .f2{bottom:18%;left:-4%;transform:rotate(3deg);background:var(--moss);color:var(--paper);border-color:var(--moss)}
+
+  /* divider */
+  .div-row{display:flex;align-items:center;gap:18px;justify-content:center;max-width:680px;margin:80px auto;color:var(--stone)}
+  .div-row::before, .div-row::after{content:"";flex:1;height:1px;background:var(--stone)}
+  .div-row .leaf-tiny{
+    width:24px;height:24px;border-radius:50% 0 50% 50%;
+    background:var(--moss);transform:rotate(-45deg);
+  }
+
+  /* SECTIONS */
+  section.block{max-width:1280px;margin:0 auto;padding:80px 32px;position:relative}
+  .sec-head{display:grid;grid-template-columns:1fr 2fr;gap:40px;align-items:end;margin-bottom:60px}
+  .sec-head .num{
+    font-family:"Cormorant Garamond",serif;font-style:italic;font-size:80px;line-height:.9;color:var(--moss);
+  }
+  .sec-head h3{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:64px;line-height:.95;color:var(--bark-2);letter-spacing:-.02em}
+  .sec-head h3 em{font-style:italic;color:var(--moss-2)}
+  .sec-head .desc{font-family:"Gowun Batang",serif;font-size:14px;line-height:1.8;color:var(--stone);max-width:340px;margin-left:auto;margin-bottom:8px}
+
+  /* manifesto: stones in a path */
+  .stones{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px;
+  }
+  .stone-card{
+    background:var(--paper-2);border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    padding:48px 28px;text-align:center;position:relative;
+    transition:transform .25s, border-radius .3s;
+  }
+  .stone-card:nth-child(2){border-radius:50% 50% 60% 50% / 50% 60% 40% 50%;background:#e8dcc1}
+  .stone-card:nth-child(3){border-radius:55% 45% 50% 50% / 55% 50% 50% 45%}
+  .stone-card:nth-child(4){border-radius:50% 60% 45% 55% / 50% 55% 45% 60%;background:#e8dcc1}
+  .stone-card:nth-child(5){border-radius:55% 50% 55% 45% / 60% 45% 55% 50%}
+  .stone-card:hover{transform:translateY(-6px) rotate(-1deg)}
+  .stone-card .num{
+    font-family:"Cormorant Garamond",serif;font-style:italic;font-size:48px;color:var(--terra);line-height:.9;margin-bottom:10px;
+  }
+  .stone-card h4{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:22px;line-height:1.2;margin-bottom:8px;color:var(--bark-2)}
+  .stone-card p{font-family:"Gowun Batang",serif;font-size:13px;line-height:1.7;color:var(--bark)}
+
+  /* bands: cards on wooden grain background */
+  .bands-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+  .band-card{
+    background:var(--paper);border:1px solid rgba(58,40,24,.2);
+    border-radius:24px;padding:28px;position:relative;overflow:hidden;
+    transition:transform .2s, border-color .2s;
+  }
+  .band-card:hover{transform:translateY(-4px);border-color:var(--moss)}
+  .band-card::before{
+    content:"";position:absolute;top:-40px;right:-40px;width:160px;height:160px;
+    background:var(--moss);border-radius:50% 0 50% 50%;transform:rotate(-30deg);opacity:.18;
+  }
+  .band-card:nth-child(2)::before{background:var(--terra)}
+  .band-card:nth-child(3)::before{background:var(--bark)}
+  .band-card:nth-child(4)::before{background:var(--tea)}
+  .band-card:nth-child(5)::before{background:var(--moss-2)}
+  .band-card:nth-child(6)::before{background:var(--stone)}
+  .band-card .meta-line{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:14px;color:var(--stone);margin-bottom:12px;position:relative;z-index:1}
+  .band-card h4{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:30px;line-height:1.05;margin-bottom:6px;color:var(--bark-2);position:relative;z-index:1}
+  .band-card .ko{font-family:"Gowun Batang",serif;font-weight:700;font-size:24px;color:var(--bark-2);margin-bottom:16px;position:relative;z-index:1}
+  .band-card .desc-row{font-family:"Gowun Batang",serif;font-size:13px;color:var(--bark);line-height:1.7;margin-bottom:16px;position:relative;z-index:1}
+  .band-card .tags{display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:1}
+  .band-card .tag{font-size:11px;padding:3px 10px;border:1px solid rgba(58,40,24,.4);border-radius:999px;color:var(--bark-2)}
+
+  /* shows: vertical timeline */
+  .timeline{position:relative;padding-left:80px}
+  .timeline::before{content:"";position:absolute;left:30px;top:8px;bottom:8px;width:2px;background:var(--moss);opacity:.5}
+  .show-item{position:relative;padding:24px 0 32px;border-bottom:1px solid rgba(58,40,24,.15);display:grid;grid-template-columns:1fr 200px 120px;gap:32px;align-items:center}
+  .show-item:last-child{border-bottom:none}
+  .show-item::before{
+    content:"";position:absolute;left:-58px;top:32px;width:18px;height:18px;border-radius:50%;
+    background:var(--paper);border:3px solid var(--moss);
+  }
+  .show-item .date-tag{
+    position:absolute;left:-110px;top:24px;
+    font-family:"Cormorant Garamond",serif;font-style:italic;
+    font-size:32px;line-height:1;color:var(--terra);text-align:right;width:80px;
+  }
+  .show-item .date-tag small{display:block;font-family:"Gowun Batang",serif;font-style:normal;font-size:11px;letter-spacing:.2em;color:var(--stone);margin-top:6px}
+  .show-item h5{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:24px;line-height:1.1;margin-bottom:6px;color:var(--bark-2)}
+  .show-item h5 em{font-style:italic;color:var(--moss-2)}
+  .show-item p{font-family:"Gowun Batang",serif;font-size:13px;color:var(--bark);line-height:1.6}
+  .show-item .venue{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:18px;color:var(--bark-2)}
+  .show-item .venue small{display:block;font-family:"Gowun Batang",serif;font-style:normal;font-size:11px;color:var(--stone);margin-top:4px;letter-spacing:.1em}
+  .show-item .price{text-align:right;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:22px;color:var(--bark-2)}
+  .show-item .price small{display:block;font-family:"Gowun Batang",serif;font-style:normal;font-size:11px;color:var(--stone);margin-top:4px}
+
+  /* practice: organic frame */
+  .practice-card{
+    background:var(--bark-2);color:var(--paper);
+    border-radius:48px 48px 96px 48px;
+    padding:56px;display:grid;grid-template-columns:1.2fr 1fr;gap:48px;
+    position:relative;overflow:hidden;
+  }
+  .practice-card::before{
+    content:"";position:absolute;top:-80px;right:-80px;width:240px;height:240px;
+    background:var(--moss);border-radius:50% 0 50% 50%;transform:rotate(-30deg);opacity:.4;
+  }
+  .practice-card .body{position:relative;z-index:1}
+  .practice-card .body .tag{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:14px;letter-spacing:.3em;color:var(--tea);margin-bottom:18px}
+  .practice-card .body h3{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:56px;line-height:1;margin-bottom:18px;color:var(--paper)}
+  .practice-card .body h3 em{font-style:italic;color:var(--tea)}
+  .practice-card .body p{font-family:"Gowun Batang",serif;font-size:15px;line-height:1.9;margin-bottom:24px;color:rgba(237,228,211,.85)}
+  .practice-card .body ul{list-style:none;display:grid;gap:8px;font-family:"Gowun Batang",serif;font-size:14px}
+  .practice-card .body li{padding-left:20px;position:relative;color:rgba(237,228,211,.9)}
+  .practice-card .body li::before{
+    content:"";position:absolute;left:0;top:8px;width:10px;height:10px;border-radius:50% 0 50% 50%;
+    background:var(--moss);transform:rotate(-45deg);
+  }
+  .rate-table{
+    background:rgba(237,228,211,.06);border:1px solid rgba(237,228,211,.2);
+    border-radius:24px;padding:32px;align-self:start;position:relative;z-index:1;
+  }
+  .rate-table h4{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:13px;letter-spacing:.3em;color:var(--tea);margin-bottom:18px}
+  .rate-table .row{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px dashed rgba(237,228,211,.2);align-items:baseline}
+  .rate-table .row:last-of-type{border-bottom:none}
+  .rate-table .row .name{font-family:"Gowun Batang",serif;font-size:14px;color:rgba(237,228,211,.85)}
+  .rate-table .row .v{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:22px;color:var(--paper)}
+  .rate-table a{
+    display:block;text-align:center;margin-top:20px;padding:14px;
+    background:var(--moss);color:var(--paper);border-radius:999px;
+    font-family:"Gowun Batang",serif;font-size:13px;
+  }
+
+  /* JOIN */
+  .join-section{
+    text-align:center;padding:120px 32px;border-radius:96px 96px 0 0;
+    background:var(--moss-2);color:var(--paper);
+    position:relative;overflow:hidden;margin-top:60px;
+  }
+  .join-section::before, .join-section::after{
+    content:"";position:absolute;border-radius:50% 0 50% 50%;background:var(--paper);opacity:.06;
+  }
+  .join-section::before{width:200px;height:200px;top:-60px;left:10%;transform:rotate(-30deg)}
+  .join-section::after{width:160px;height:160px;bottom:-40px;right:15%;transform:rotate(60deg)}
+  .join-section > *{position:relative;z-index:1}
+  .join-section .label{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:14px;letter-spacing:.4em;color:var(--tea);margin-bottom:18px;display:inline-block}
+  .join-section h3{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:clamp(56px,9vw,120px);line-height:1;margin-bottom:24px}
+  .join-section h3 em{font-style:italic;color:var(--tea)}
+  .join-section p{font-family:"Gowun Batang",serif;font-size:17px;line-height:1.9;max-width:580px;margin:0 auto 36px;color:rgba(237,228,211,.85)}
+  .join-section .btn.bark{background:var(--paper);color:var(--bark-2)}
+  .join-section .btn.bark:hover{background:var(--tea);color:var(--paper)}
+
+  footer{padding:60px 32px 30px;max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:32px}
+  footer h6{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:18px;color:var(--moss-2);margin-bottom:12px}
+  footer ul{list-style:none}
+  footer li{font-family:"Gowun Batang",serif;font-size:14px;line-height:1.9;color:var(--bark)}
+  footer .name-mark{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:36px;color:var(--bark-2);margin-bottom:6px}
+  footer .end{
+    grid-column:1/-1;border-top:1px solid rgba(58,40,24,.2);padding-top:18px;margin-top:18px;
+    text-align:center;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:14px;color:var(--stone);
+  }
+
+  @media(max-width:900px){
+    .hero, .practice-card{grid-template-columns:1fr}
+    .show-item{grid-template-columns:1fr;gap:8px}
+    .show-item .venue, .show-item .price{text-align:left}
+    .timeline{padding-left:60px}
+    .show-item .date-tag{left:-50px;width:auto;font-size:24px;text-align:left;top:-8px}
+    .sec-head{grid-template-columns:1fr}
+    .sec-head .desc{margin-left:0}
+    footer{grid-template-columns:1fr 1fr}
+    .topbar nav{display:none}
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="leaf-mark"><span>音</span></div>
+    <div class="name">eumjinin<small>음 진 인 · 2018</small></div>
+    <nav>
+      <a href="#manifesto">매니페스토</a>
+      <a href="#bands">밴드</a>
+      <a href="#shows">공연</a>
+      <a href="#practice">연습실</a>
+    </nav>
+    <a class="btn-tea" href="#join">→ 가입 신청</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <span class="label">since 2018 · seoul</span>
+      <h1>천천히, <em>오래</em>,<br/>음악과 함께 <span class="leaf">자라기.</span></h1>
+      <p class="lede">서울 한 켠 지하실에서 매주 모여 합주하고, 차 한 잔 사이에 새로운 곡이 태어나는 곳. 우리는 음악을 진심으로 대하는 사람들의 작은 공동체입니다.</p>
+      <div class="hero-cta">
+        <a class="btn bark" href="#join">→ 함께하기</a>
+        <a class="btn line" href="#shows">다가오는 공연</a>
+      </div>
+    </div>
+    <div class="hero-vis">
+      <svg viewBox="0 0 200 200">
+        <!-- ground arc -->
+        <ellipse cx="100" cy="172" rx="80" ry="8" fill="#3a2818" opacity=".15"/>
+        <!-- big leaf shape behind -->
+        <path d="M 30 90 Q 60 30 130 50 Q 180 80 150 140 Q 110 180 60 160 Q 20 130 30 90 Z" fill="#6b7a4b" opacity=".4"/>
+        <!-- ceramic cup body -->
+        <path d="M 60 110 Q 60 170 100 170 Q 140 170 140 110 L 140 105 L 60 105 Z" fill="#5a3f2a"/>
+        <ellipse cx="100" cy="105" rx="40" ry="6" fill="#3a2818"/>
+        <ellipse cx="100" cy="106" rx="36" ry="4" fill="#2a2018"/>
+        <!-- handle -->
+        <path d="M 140 120 Q 165 125 165 145 Q 165 160 140 158" fill="none" stroke="#5a3f2a" stroke-width="6" stroke-linecap="round"/>
+        <!-- steam -->
+        <path d="M 80 95 Q 85 75 80 60 Q 75 45 85 30" fill="none" stroke="#a87c4f" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+        <path d="M 100 95 Q 105 70 95 50 Q 90 35 105 20" fill="none" stroke="#a87c4f" stroke-width="2" stroke-linecap="round" opacity=".4"/>
+        <path d="M 120 95 Q 125 75 120 60 Q 115 50 125 35" fill="none" stroke="#a87c4f" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+        <!-- leaf on top -->
+        <path d="M 110 78 Q 124 70 132 80 Q 134 92 122 96 Q 110 92 110 78 Z" fill="#4d5a36"/>
+        <line x1="115" y1="80" x2="128" y2="92" stroke="#3a2818" stroke-width=".8" opacity=".4"/>
+        <!-- musical note small -->
+        <circle cx="40" cy="60" r="6" fill="#a85a3a"/>
+        <line x1="46" y1="60" x2="46" y2="35" stroke="#a85a3a" stroke-width="2"/>
+      </svg>
+      <span class="floating f1">slow music</span>
+      <span class="floating f2">매주 화요일</span>
+    </div>
+  </section>
+
+  <div class="div-row"><div class="leaf-tiny"></div></div>
+
+  <section class="block" id="manifesto">
+    <div class="sec-head">
+      <div class="num">i.</div>
+      <h3>다섯 가지 <em>마음</em></h3>
+      <p class="desc">우리가 7년간 천천히 쌓아온 다섯 가지의 약속. 새 멤버에게 처음 건네는 이야기들.</p>
+    </div>
+    <div class="stones">
+      <div class="stone-card"><div class="num">i</div><h4>진심이<br/>먼저</h4><p>실력보다 마음을 본다. 진심은 가르칠 수 없으니까.</p></div>
+      <div class="stone-card"><div class="num">ii</div><h4>장르를<br/>가리지 않는다</h4><p>포크부터 메탈까지, 마음에 드는 음악이라면.</p></div>
+      <div class="stone-card"><div class="num">iii</div><h4>합주가<br/>회식보다 자주</h4><p>매주 만난다. 술자리는 분기에 한 번 정도.</p></div>
+      <div class="stone-card"><div class="num">iv</div><h4>처음을<br/>업신여기지 않는다</h4><p>새 멤버에게 텃세 없음. 모두의 첫날을 기억한다.</p></div>
+      <div class="stone-card"><div class="num">v</div><h4>음악으로만<br/>다툰다</h4><p>모임 안 정치는 음악에 한해 환영합니다.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="bands">
+    <div class="sec-head">
+      <div class="num">ii.</div>
+      <h3>여섯 개의 <em>나무</em></h3>
+      <p class="desc">2019년부터 한 그루씩, 천천히 늘어난 여섯 밴드. 매월 합동 합주, 분기별 자체 쇼케이스.</p>
+    </div>
+    <div class="bands-grid">
+      <div class="band-card"><div class="meta-line">est. 2019 · 5인조</div><h4>recording thieves</h4><div class="ko">녹음실 도둑</div><div class="desc-row">한 번 들어가면 새벽까지 못 나오는 인디 록 밴드.</div><div class="tags"><span class="tag">indie</span><span class="tag">rock</span></div></div>
+      <div class="band-card"><div class="meta-line">est. 2020 · 4인조</div><h4>3am</h4><div class="ko">새벽 3시</div><div class="desc-row">공기 같은 보컬과 잔향으로 가득 찬 드림 팝.</div><div class="tags"><span class="tag">dream pop</span></div></div>
+      <div class="band-card"><div class="meta-line">est. 2021 · 3인조</div><h4>bang!bang!</h4><div class="ko">BANG!BANG!</div><div class="desc-row">합주 한 번에 앰프 두 대씩 망가뜨리는 펑크 트리오.</div><div class="tags"><span class="tag">punk</span><span class="tag">hc</span></div></div>
+      <div class="band-card"><div class="meta-line">est. 2022 · 4인조</div><h4>monday blues</h4><div class="ko">월요일 우울증</div><div class="desc-row">직장인 평일 밤만의 정서를 담은 이모/얼터.</div><div class="tags"><span class="tag">emo</span><span class="tag">alt</span></div></div>
+      <div class="band-card"><div class="meta-line">est. 2023 · 3인조</div><h4>cat's footprints</h4><div class="ko">고양이 발자국</div><div class="desc-row">가사가 시처럼 읽히는 어쿠스틱 포크.</div><div class="tags"><span class="tag">folk</span></div></div>
+      <div class="band-card"><div class="meta-line">est. 2024 · 5인조</div><h4>heavy kimchi</h4><div class="ko">HEAVY 김치</div><div class="desc-row">국악기 도입을 실험하는 메탈 퓨전 밴드.</div><div class="tags"><span class="tag">metal</span><span class="tag">국악</span></div></div>
+    </div>
+  </section>
+
+  <section class="block" id="shows">
+    <div class="sec-head">
+      <div class="num">iii.</div>
+      <h3>다가오는 <em>계절들</em></h3>
+      <p class="desc">회원은 모든 공연 30% 할인. 예매는 각 밴드 SNS 또는 운영진을 통해.</p>
+    </div>
+    <div class="timeline">
+      <div class="show-item">
+        <span class="date-tag">12.20<small>SAT</small></span>
+        <div><h5>winter <em>showcase</em> 2025</h5><p>다섯 밴드 합동 + 부산 컬렉티브 게스트 · 19:00 doors</p></div>
+        <div class="venue">Rolling Hall<small>홍대 · standing</small></div>
+        <div class="price">₩25,000<small>회원 ₩17,500</small></div>
+      </div>
+      <div class="show-item">
+        <span class="date-tag">01.18<small>SUN</small></span>
+        <div><h5>BANG!BANG! <em>solo</em></h5><p>정규 1집 발매 기념 · 전곡 라이브 · 20:00</p></div>
+        <div class="venue">club FF<small>홍대 · standing</small></div>
+        <div class="price">₩30,000<small>회원 ₩21,000</small></div>
+      </div>
+      <div class="show-item">
+        <span class="date-tag">02.14<small>SAT</small></span>
+        <div><h5>새벽 3시 × <em>고양이 발자국</em></h5><p>어쿠스틱 합동 · 발렌타인 스페셜 · 19:30</p></div>
+        <div class="venue">Jebi Dabang<small>삼청동 · seated</small></div>
+        <div class="price">₩18,000<small>회원 ₩12,600</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="practice">
+    <div class="sec-head">
+      <div class="num">iv.</div>
+      <h3>지하의 <em>온실</em></h3>
+      <p class="desc">연남동 지하 1층, 60평. 풀세트 합주실 + 보컬 부스 + 작은 공연장.</p>
+    </div>
+    <div class="practice-card">
+      <div class="body">
+        <div class="tag">— art hall k —</div>
+        <h3>자라기 좋은 <em>그늘.</em></h3>
+        <p>드럼·기타·베이스 풀세팅, 보컬 부스, 마이크 6채널, 모니터 4기. 합주 녹음은 USB 가져오시면 무료. 24시까지 운영합니다.</p>
+        <ul>
+          <li>드럼 · 베이스앰프 · 기타앰프 풀세팅</li>
+          <li>마이크 6채널, 모니터 4기</li>
+          <li>합주 녹음 무료 (USB 지참)</li>
+          <li>심야 24:00까지 운영</li>
+        </ul>
+      </div>
+      <div class="rate-table">
+        <h4>— rate card —</h4>
+        <div class="row"><span class="name">회원 · 시간당</span><span class="v">₩8,000</span></div>
+        <div class="row"><span class="name">비회원 · 시간당</span><span class="v">₩15,000</span></div>
+        <div class="row"><span class="name">녹음 세션 · 정액</span><span class="v">₩50,000</span></div>
+        <div class="row"><span class="name">쇼케이스 대관</span><span class="v">₩200,000</span></div>
+        <a href="#">예약 시간표 보기 →</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="join-section" id="join">
+    <span class="label">— membership —</span>
+    <h3>같이 <em>자라요.</em></h3>
+    <p>악기 한번이라도 잡아본 사람, 새벽에 가사 한 줄 때문에 잠 못 드는 사람, 음악 곁에서 천천히 자라고 싶은 사람 — 모두 환영합니다.</p>
+    <a class="btn bark" href="#" style="padding:18px 32px;font-size:15px">→ 신청서 작성하기</a>
+  </section>
+
+  <footer>
+    <div>
+      <div class="name-mark">eumjinin</div>
+      <p style="font-family:'Gowun Batang',serif;font-size:14px;line-height:1.8;color:var(--bark)">음악에 진심인 사람들의 작은 모임<br/>since 2018, Seoul</p>
+    </div>
+    <div><h6>Contact</h6><ul><li>eumjinin@gmail.com</li><li>@eumjinin_official</li></ul></div>
+    <div><h6>Studio</h6><ul><li>연남동 Art Hall K B1</li><li>서울 마포구</li></ul></div>
+    <div><h6>Hours</h6><ul><li>평일 18:00 — 24:00</li><li>주말 12:00 — 24:00</li></ul></div>
+    <div class="end">© 2025 eumjinin · made slow in Yeonnam-dong</div>
+  </footer>
+</body>
+</html>
