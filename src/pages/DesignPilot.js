@@ -13,7 +13,6 @@ const DESIGNS = [
 function DesignPilot() {
   const [selectedId, setSelectedId] = useState(DESIGNS[0].id);
   const selected = DESIGNS.find((d) => d.id === selectedId) || DESIGNS[0];
-  const src = `${process.env.PUBLIC_URL}/designs/${selected.folder}/index.html`;
 
   return (
     <section className="design-page">
