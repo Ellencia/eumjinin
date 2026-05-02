@@ -63,7 +63,7 @@ body.v1-active {
   .v1-root .sidebar { position: relative !important; height: auto !important; }
 }
 
-.v1-root .main { position: relative; min-height: 100vh; }
+.v1-root .main { position: relative; min-height: 100vh; overflow-x: hidden; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes blink { 0%, 60% { opacity: 1; } 70%, 100% { opacity: 0.25; } }
@@ -194,7 +194,7 @@ body.v1-active {
 /* Hero */
 .v1-root .hero {
   position: relative;
-  padding: 72px 64px 56px;
+  padding: 80px 64px 64px;
   background:
     radial-gradient(circle at 80% 30%, rgba(212,164,55,0.16), transparent 55%),
     linear-gradient(180deg, var(--burgundy) 0%, var(--burgundy-deep) 100%);
@@ -213,8 +213,8 @@ body.v1-active {
 .v1-root .hero-title {
   font-family: 'Black Han Sans', 'Noto Serif KR', serif;
   font-weight: 900;
-  font-size: clamp(56px, 8.5vw, 124px);
-  line-height: 0.92;
+  font-size: clamp(48px, calc(8.5vw - 24px), 112px);
+  line-height: 1.0;
   color: var(--cream);
   letter-spacing: -0.01em;
   position: relative;

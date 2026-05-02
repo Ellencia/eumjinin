@@ -242,8 +242,8 @@ main { padding-top: 64px; }
 }
 
 .mega-menu-inner {
-  /* navbar-inner와 동일한 구조: 로고(160px) + 24px 패딩 왼쪽, 우측메뉴(230px) + 24px 패딩 오른쪽 */
-  padding: 32px calc(230px + 24px) 32px calc(160px + 24px);
+  /* navbar-inner와 동일한 구조: 로고(160px) + 24px 패딩 왼쪽, 우측메뉴(330px) + 24px 패딩 오른쪽 */
+  padding: 32px calc(330px + 24px) 32px calc(160px + 24px);
   display: flex;
   justify-content: space-evenly;
 }
