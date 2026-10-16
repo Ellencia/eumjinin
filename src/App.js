@@ -1,5 +1,5 @@
 import { useState, createContext } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import LoadingSplash from './components/LoadingSplash';
@@ -13,6 +13,7 @@ import SpaceList from './pages/SpaceList';
 import SpaceDetail from './pages/SpaceDetail';
 import InfoPage from './pages/InfoPage';
 import DesignPilot from './pages/DesignPilot';
+import Admin from './pages/Admin';
 import ScrollManager from './components/ScrollManager';
 import { DesignProvider, useDesign } from './contexts/DesignContext';
 import V1App from './designs/v1/V1App';
@@ -32,7 +33,8 @@ function MainLayout() {
   );
 }
 
-function AppInner() {
+// 공개 사이트. 시안(v1/v2) 선택 시 통째로 교체됨
+function Site() {
   const { design } = useDesign();
   const [loading, setLoading] = useState(true);
 
@@ -42,31 +44,29 @@ function AppInner() {
   return (
     <SplashContext.Provider value={loading}>
       {loading && <LoadingSplash onDone={() => setLoading(false)} />}
-      <HashRouter>
-        <div className="App">
-          <ScrollManager />
-          <Navbar />
-          <main>
-            <Routes>
-              <Route path="/" element={<MainLayout />} />
-              <Route path="/spaces" element={<SpaceList />} />
-              <Route path="/spaces/:id" element={<SpaceDetail />} />
-              <Route path="/reservation" element={<Reservation />} />
-              <Route path="/reservation/:roomId" element={<ReservationDetail />} />
-              <Route path="/about/greeting" element={<InfoPage />} />
-              <Route path="/about/history" element={<InfoPage />} />
-              <Route path="/about/location" element={<InfoPage />} />
-              <Route path="/community/archive" element={<InfoPage />} />
-              <Route path="/community/board" element={<InfoPage />} />
-              <Route path="/community/qna" element={<InfoPage />} />
-              <Route path="/projects/overview" element={<InfoPage />} />
-              <Route path="/projects/ongoing" element={<InfoPage />} />
-              <Route path="/designs" element={<DesignPilot />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </HashRouter>
+      <div className="App">
+        <ScrollManager />
+        <Navbar />
+        <main>
+          <Routes>
+            <Route path="/" element={<MainLayout />} />
+            <Route path="/spaces" element={<SpaceList />} />
+            <Route path="/spaces/:id" element={<SpaceDetail />} />
+            <Route path="/reservation" element={<Reservation />} />
+            <Route path="/reservation/:roomId" element={<ReservationDetail />} />
+            <Route path="/about/greeting" element={<InfoPage />} />
+            <Route path="/about/history" element={<InfoPage />} />
+            <Route path="/about/location" element={<InfoPage />} />
+            <Route path="/community/archive" element={<InfoPage />} />
+            <Route path="/community/board" element={<InfoPage />} />
+            <Route path="/community/qna" element={<InfoPage />} />
+            <Route path="/projects/overview" element={<InfoPage />} />
+            <Route path="/projects/ongoing" element={<InfoPage />} />
+            <Route path="/designs" element={<DesignPilot />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
     </SplashContext.Provider>
   );
 }
@@ -74,7 +74,12 @@ function AppInner() {
 function App() {
   return (
     <DesignProvider>
-      <AppInner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/admin/*" element={<Admin />} />
+          <Route path="/*" element={<Site />} />
+        </Routes>
+      </BrowserRouter>
     </DesignProvider>
   );
 }

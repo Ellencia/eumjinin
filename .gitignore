@@ -11,6 +11,10 @@
 # production
 /build
 
+# data (개인정보 — 절대 커밋 금지)
+/data/
+.env
+
 # misc
 .DS_Store
 .env.local

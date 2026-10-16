@@ -1,0 +1,34 @@
+/* 관리자 화면. 공개 사이트 스타일과 분리 */
+.adm { min-height: 100vh; background: #f6f6f9; color: #1f2330; font-size: 0.9rem; }
+.adm-header { display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e3e5ec; }
+.adm-header nav { display: flex; gap: 4px; }
+.adm-header nav button { background: none; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: #555; }
+.adm-header nav button.active { background: #ede9fe; color: #6d28d9; font-weight: 700; }
+.adm-logout { margin-left: auto; background: none; border: 1px solid #ddd; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.adm-main { padding: 20px 24px; overflow-x: auto; }
+
+.adm-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.adm-filters input, .adm-filters select, .adm-table select, .adm-memo {
+  border: 1px solid #d9dbe3; border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; background: #fff;
+}
+.adm-filters input[type="text"], .adm-filters input:not([type]) { min-width: 260px; }
+.adm-count { color: #777; margin-left: auto; }
+
+.adm-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e3e5ec; }
+.adm-table th, .adm-table td { padding: 8px 10px; border-bottom: 1px solid #eef0f4; text-align: left; white-space: nowrap; vertical-align: middle; }
+.adm-table th { background: #fafafd; font-weight: 600; color: #666; font-size: 0.8rem; }
+.adm-table a { color: #6d28d9; }
+.adm-memo { width: 180px; }
+.adm-intro { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.adm-dim { color: #999; font-size: 0.8rem; }
+.adm-empty { text-align: center; color: #999; padding: 32px !important; }
+.adm-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 1rem; }
+.adm-del:hover { color: #e05555; }
+.adm-error { color: #e05555; margin: 0 0 10px; }
+
+.adm-table tr.st-취소 td, .adm-table tr.st-보류 td { color: #aaa; }
+.adm-table tr.st-확정 td:first-child, .adm-table tr.st-합류 td:nth-child(2) { font-weight: 700; color: #15803d; }
+
+.adm-login { max-width: 320px; margin: 20vh auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.adm-login h1 { font-size: 1.3rem; margin: 0 0 8px; }
+.adm-login input { border: 1px solid #d9dbe3; border-radius: 8px; padding: 10px 12px; font-size: 1rem; }

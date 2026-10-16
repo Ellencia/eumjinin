@@ -85,7 +85,7 @@ function ReservationDetail() {
   useEffect(() => {
     if (!selectedDate) return;
     const dateStr = selectedDate.toISOString().split('T')[0];
-    fetch(`http://localhost:3001/api/reservations?roomId=${roomId}&date=${dateStr}`)
+    fetch(`/api/reservations?roomId=${roomId}&date=${dateStr}`)
       .then(res => res.json())
       .then(data => setBookedRanges(data))
       .catch(() => setBookedRanges([]));
@@ -138,7 +138,7 @@ function ReservationDetail() {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const res = await fetch('http://localhost:3001/api/reservations', {
+      const res = await fetch('/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,7 +157,7 @@ function ReservationDetail() {
         setSubmitError(data.error || '예약 중 오류가 발생했습니다.');
       }
     } catch {
-      setSubmitError('서버에 연결할 수 없습니다. npm run server 를 실행해주세요.');
+      setSubmitError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setSubmitting(false);
     }
