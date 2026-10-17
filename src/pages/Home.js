@@ -90,7 +90,7 @@ function Home() {
         </div>
       </div>
       <div className="hero-stats">
-        <AnimatedStat target={100} suffix="+" label="소속 밴드 수" />
+        <AnimatedStat target={60} suffix="+" label="소속 밴드 수" />
         <AnimatedStat target={3} suffix="+" label="연습 공간" />
         <div className="stat">
           <span className="stat-num">∞</span>
