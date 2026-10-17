@@ -47,6 +47,7 @@ db.exec(`
 
 const RESV_STATUS = ['신청', '확정', '취소'];
 const MEMBER_STATUS = ['신청', '연락함', '합류', '보류'];
+const CONSENT_MSG = '개인정보 수집·이용 동의가 필요합니다.';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:00$/;
 
@@ -134,6 +135,7 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (!roomId || !date || !startTime || !endTime || !name || !phone)
     return res.status(400).json({ error: '모든 항목을 입력해주세요.' });
+  if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
   if (!DATE_RE.test(date) || !TIME_RE.test(startTime) || !TIME_RE.test(endTime) || startTime >= endTime)
     return res.status(400).json({ error: '날짜 또는 시간 형식이 올바르지 않습니다.' });
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
@@ -150,6 +152,7 @@ app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
   for (const k of ['name', 'email', 'band', 'role', 'location', 'birth', 'genre', 'intro']) f[k] = String(req.body[k] || '').trim();
   const phone = normalizePhone(req.body.phone);
   if (!f.name || !f.email || !phone) return res.status(400).json({ error: '이름, 이메일, 연락처는 필수 항목입니다.' });
+  if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
   if (db.prepare('SELECT 1 FROM members WHERE phone = ?').get(phone))
     return res.status(409).json({ error: '이미 같은 연락처로 신청된 내역이 있습니다.' });

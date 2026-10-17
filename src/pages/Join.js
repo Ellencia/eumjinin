@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import Reveal from '../components/Reveal';
+import ConsentCheck from '../components/ConsentCheck';
 
 const GENRES = ['팝', '록', '재즈', 'R&B', '클래식', '힙합', '인디', '기타'];
 const ROLES = ['보컬', '기타', '베이스', '드럼', '키보드/피아노', '현악기', '관악기', '작곡/편곡', '그 외'];
@@ -63,6 +64,7 @@ function Join() {
     name: '', email: '', band: '', role: '',
     location: '', birth: '', genre: '', phone: '', intro: '',
   });
+  const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -106,13 +108,14 @@ function Join() {
     const requiredFields = ['name', 'email', 'phone'];
     setTouched((prev) => Object.fromEntries([...requiredFields.map(f => [f, true]), ...Object.entries(prev)]));
     if (requiredFields.some(f => getFieldError(f, form[f]))) return;
+    if (!consent) { setError('개인정보 수집·이용에 동의해주세요.'); return; }
     setError('');
     setLoading(true);
     try {
       const res = await fetch('/api/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, consent }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -243,6 +246,12 @@ function Join() {
               onChange={handleChange}
             />
           </div>
+
+          <ConsentCheck
+            checked={consent} onChange={setConsent}
+            items="이름, 이메일, 연락처(필수) / 소속 밴드, 역할, 거주지, 생년월일, 장르, 자기소개(선택)"
+            purpose="멤버 신청 접수 및 연락"
+          />
 
           {error && <p className="form-error">{error}</p>}
           <button

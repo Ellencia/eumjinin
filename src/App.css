@@ -901,6 +901,13 @@ main { padding-top: 64px; }
   .form-row { grid-template-columns: 1fr; }
 }
 
+.consent-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 0.82rem; line-height: 1.5; color: #6b7280; text-align: left; cursor: pointer;
+}
+.consent-row input { margin-top: 4px; flex-shrink: 0; }
+.consent-row strong { color: #374151; }
+
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 0.9rem; font-weight: 600; color: #374151; }
 

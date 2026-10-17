@@ -36,6 +36,8 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 | DB_FILE | ./data/kband.db | |
 | NODE_ENV | | production이면 Secure 쿠키 |
 
+공개 POST(`/api/members`, `/api/reservations`)는 `consent: true`가 없으면 400. 폼의 개인정보 동의 체크박스가 이 값을 보냄.
+
 ## 백업
 
 `data/kband.db` 파일 하나 복사하면 끝. 운영 중엔 `sqlite3 data/kband.db ".backup backup.db"`.

@@ -1,4 +1,4 @@
-// 서버 스모크 테스트: node test_api.js  (임시 DB·임시 포트로 서버를 띄우고 전부 지움)
+﻿// 서버 스모크 테스트: node test_api.js  (임시 DB·임시 포트로 서버를 띄우고 전부 지움)
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
@@ -31,26 +31,28 @@ async function main() {
   await new Promise(r => srv.stdout.once('data', r));
 
   // 공개 예약
-  let r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '20:00', endTime: '26:00', name: '테스트', phone: '01012345678' });
+  let r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '20:00', endTime: '26:00', name: '테스트', phone: '01012345678', consent: true });
   assert.equal(r.status, 201, '예약 생성');
   const resvId = r.data.id;
-  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '22:00', endTime: '23:00', name: '겹침', phone: '010-1111-2222' });
+  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '22:00', endTime: '23:00', name: '겹침', phone: '010-1111-2222', consent: true });
   assert.equal(r.status, 409, '같은 날 겹침');
-  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-02', startTime: '01:00', endTime: '03:00', name: '다음날', phone: '010-1111-2222' });
+  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-02', startTime: '01:00', endTime: '03:00', name: '다음날', phone: '010-1111-2222', consent: true });
   assert.equal(r.status, 409, '자정 넘긴 예약과 다음날 새벽 겹침');
-  r = await req('POST', '/api/reservations', { roomId: 4, date: '2026-11-01', startTime: '22:00', endTime: '23:00', name: '다른방', phone: '010-1111-2222' });
+  r = await req('POST', '/api/reservations', { roomId: 4, date: '2026-11-01', startTime: '22:00', endTime: '23:00', name: '다른방', phone: '010-1111-2222', consent: true });
   assert.equal(r.status, 201, '다른 방은 OK');
-  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '23:00', endTime: '22:00', name: 'x', phone: '010-1111-2222' });
+  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '23:00', endTime: '22:00', name: 'x', phone: '010-1111-2222', consent: true });
   assert.equal(r.status, 400, '시작>종료');
+  r = await req('POST', '/api/reservations', { roomId: 4, date: '2026-11-03', startTime: '10:00', endTime: '11:00', name: '동의없음', phone: '010-1111-2222' });
+  assert.equal(r.status, 400, '동의 없으면 400');
   r = await req('GET', '/api/reservations?roomId=3&date=2026-11-02');
   assert.equal(r.data.length, 1, '다음날 조회에 전날 자정 넘김 예약 포함');
   assert.ok(!('phone' in r.data[0]) && !('name' in r.data[0]), '공개 조회에 개인정보 없음');
 
   // 공개 멤버
-  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@b.co', phone: '010-9999-8888', band: '밴드' });
+  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@b.co', phone: '010-9999-8888', band: '밴드', consent: true });
   assert.equal(r.status, 201, '멤버 생성');
   const memId = r.data.id;
-  r = await req('POST', '/api/members', { name: '홍길동2', email: 'a@b.co', phone: '01099998888' });
+  r = await req('POST', '/api/members', { name: '홍길동2', email: 'a@b.co', phone: '01099998888', consent: true });
   assert.equal(r.status, 409, '연락처 중복');
 
   // 관리자 인증
@@ -74,7 +76,7 @@ async function main() {
   assert.equal(r.status, 400, '잘못된 상태 거부');
   r = await req('PATCH', `/api/admin/reservations/${resvId}`, { status: '취소' });
   assert.equal(r.data.status, '취소');
-  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '22:00', endTime: '23:00', name: '재시도', phone: '010-1111-2222' });
+  r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '22:00', endTime: '23:00', name: '재시도', phone: '010-1111-2222', consent: true });
   assert.equal(r.status, 201, '취소된 예약은 충돌 아님');
   r = await req('PATCH', `/api/admin/reservations/${resvId}`, { status: '확정' });
   assert.equal(r.status, 409, '취소→확정 복구 시 충돌 재검사');
