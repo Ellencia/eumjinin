@@ -6,16 +6,15 @@ REPO=https://github.com/Ellencia/eumjinin.git
 APP=/srv/kband
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get update -q
-apt-get install -y -q ca-certificates curl gnupg git ufw sqlite3 debian-keyring debian-archive-keyring apt-transport-https
-
+# 외부 저장소(Node 24, Caddy)는 첫 apt 갱신 전에 키까지 등록. 키 없는 목록이 남으면 apt 전체가 멈춤
 install -d /etc/apt/keyrings
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
-curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
+curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
+chmod 644 /etc/apt/keyrings/nodesource.gpg /usr/share/keyrings/caddy-stable-archive-keyring.gpg  # gpg가 600으로 만들어 _apt가 못 읽음
 apt-get update -q
-apt-get install -y -q nodejs caddy
+apt-get install -y -q ca-certificates git ufw sqlite3 nodejs caddy
 
 # swap 2G — CRA 빌드가 메모리를 먹음
 if [ ! -f /swapfile ]; then
