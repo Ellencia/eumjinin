@@ -1,31 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import spaces from '../data/spaces';
 import Reveal from '../components/Reveal';
+import { SpaceCard } from './SpaceList';
 
 const FILTERS = ['전체', '무대', '연습실'];
-
-const typeLabel = { stage: '무대', rehearsal: '연습실' };
-const typeColor = { stage: '#7c3aed', rehearsal: '#0ea5e9' };
-
-function SpaceCard({ space }) {
-  const color = typeColor[space.type];
-  const label = typeLabel[space.type];
-  return (
-    <Link to={`/spaces/${space.id}`} className="space-card space-card-link">
-      <span className="space-badge" style={{ background: color }}>{label}</span>
-      <h3 className="space-name">{space.name}</h3>
-      <p className="space-desc">{space.desc}</p>
-      <p className="space-capacity">최대 {space.capacity}인</p>
-      <div className="space-tags">
-        {space.tags.map((t) => (
-          <span className="tag" key={t}>#{t}</span>
-        ))}
-      </div>
-      <span className="space-card-arrow">자세히 보기 →</span>
-    </Link>
-  );
-}
 
 function Spaces() {
   const [filter, setFilter] = useState('전체');
@@ -42,7 +20,7 @@ function Spaces() {
         <Reveal>
           <h2 className="section-title">공간 안내</h2>
           <p className="section-sub">
-            공연 무대부터 녹음 부스까지, 다양한 공간을 멤버에게 제공합니다.
+            정기 공연이 열리는 Art Hall K를 소개합니다. 연습실은 준비 중입니다.
           </p>
         </Reveal>
         <Reveal delay={100}>

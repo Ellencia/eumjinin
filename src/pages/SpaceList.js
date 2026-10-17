@@ -6,7 +6,8 @@ const FILTERS = ['전체', '무대', '연습실'];
 const typeLabel = { stage: '무대', rehearsal: '연습실' };
 const typeColor = { stage: '#7c3aed', rehearsal: '#0ea5e9' };
 
-function SpaceCard({ space }) {
+// 홈 섹션(Spaces.js)과 공유
+export function SpaceCard({ space }) {
   const isComingSoon = space.name === '준비중';
 
   if (isComingSoon) {
@@ -18,11 +19,6 @@ function SpaceCard({ space }) {
         <div className="space-coming-badge">준비중</div>
         <h3 className="space-name">—</h3>
         <p className="space-desc">새로운 공간이 곧 공개됩니다.</p>
-        <div className="space-tags">
-          {space.tags.map((t) => (
-            <span className="tag" key={t}>#{t}</span>
-          ))}
-        </div>
       </div>
     );
   }
@@ -62,7 +58,7 @@ function SpaceList() {
         </p>
         <h2 className="section-title">공간 안내</h2>
         <p className="section-sub">
-          공연 무대부터 녹음 부스까지, 다양한 공간을 멤버에게 제공합니다.
+          정기 공연이 열리는 Art Hall K를 소개합니다. 연습실은 준비 중입니다.
         </p>
         <div className="filter-tabs">
           {FILTERS.map((f) => (

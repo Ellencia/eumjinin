@@ -12,12 +12,8 @@ import ReservationDetail from './pages/ReservationDetail';
 import SpaceList from './pages/SpaceList';
 import SpaceDetail from './pages/SpaceDetail';
 import InfoPage from './pages/InfoPage';
-import DesignPilot from './pages/DesignPilot';
 import Admin from './pages/Admin';
 import ScrollManager from './components/ScrollManager';
-import { DesignProvider, useDesign } from './contexts/DesignContext';
-import V1App from './designs/v1/V1App';
-import V2App from './designs/v2/V2App';
 import './App.css';
 
 export const SplashContext = createContext(true);
@@ -45,13 +41,8 @@ function NotFound() {
   );
 }
 
-// 공개 사이트. 시안(v1/v2) 선택 시 통째로 교체됨
 function Site() {
-  const { design } = useDesign();
   const [loading, setLoading] = useState(true);
-
-  if (design === 'v1') return <V1App />;
-  if (design === 'v2') return <V2App />;
 
   return (
     <SplashContext.Provider value={loading}>
@@ -74,7 +65,6 @@ function Site() {
             <Route path="/community/qna" element={<InfoPage />} />
             <Route path="/projects/overview" element={<InfoPage />} />
             <Route path="/projects/ongoing" element={<InfoPage />} />
-            <Route path="/designs" element={<DesignPilot />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
@@ -86,14 +76,12 @@ function Site() {
 
 function App() {
   return (
-    <DesignProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/admin/*" element={<Admin />} />
-          <Route path="/*" element={<Site />} />
-        </Routes>
-      </BrowserRouter>
-    </DesignProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/admin/*" element={<Admin />} />
+        <Route path="/*" element={<Site />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

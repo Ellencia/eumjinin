@@ -91,7 +91,10 @@ function Home() {
       </div>
       <div className="hero-stats">
         <AnimatedStat target={60} suffix="+" label="소속 밴드 수" />
-        <AnimatedStat target={3} suffix="+" label="연습 공간" />
+        <div className="stat">
+          <span className="stat-num">매월</span>
+          <span className="stat-label">정기 공연</span>
+        </div>
         <div className="stat">
           <span className="stat-num">∞</span>
           <span className="stat-label">음악의 가능성</span>

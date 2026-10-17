@@ -34,7 +34,6 @@ const NAV_ITEMS = [
   }
 ];
 
-// /designs(시안 선택기)는 주소로 직접 접근만 가능, 메뉴에 노출하지 않음
 const RIGHT_ITEMS = [
   { label: '연습실 예약', href: '/reservation', highlight: true },
 ];
