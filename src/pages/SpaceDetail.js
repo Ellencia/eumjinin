@@ -77,11 +77,12 @@ function SpaceDetail() {
   const space = spaces.find((s) => s.id === parseInt(id));
   const images = SPACE_IMAGES[parseInt(id)];
 
-  if (!space) {
+  // '준비중' 공간(id 1·2)은 목록에서 카드만 보이고 상세는 없음. 데이터에 남은 옛 스펙이 보이지 않도록
+  if (!space || space.name === '준비중') {
     return (
       <section className="spaces spaces-page">
         <div className="section-container" style={{ textAlign: 'center', padding: '80px 24px' }}>
-          <h2>존재하지 않는 공간입니다.</h2>
+          <h2>{space ? '준비 중인 공간입니다.' : '존재하지 않는 공간입니다.'}</h2>
           <Link to="/spaces" className="btn btn-primary" style={{ marginTop: 24, display: 'inline-block' }}>
             목록으로 돌아가기
           </Link>

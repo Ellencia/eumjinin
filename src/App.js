@@ -1,5 +1,5 @@
 import { useState, createContext } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import LoadingSplash from './components/LoadingSplash';
@@ -33,6 +33,18 @@ function MainLayout() {
   );
 }
 
+function NotFound() {
+  return (
+    <section className="info-page">
+      <div className="section-container" style={{ textAlign: 'center', padding: '80px 24px' }}>
+        <h1 className="section-title">페이지를 찾을 수 없습니다</h1>
+        <p className="section-sub">주소가 잘못되었거나 삭제된 페이지입니다.</p>
+        <Link to="/" className="btn btn-primary" style={{ marginTop: 24, display: 'inline-block' }}>홈으로</Link>
+      </div>
+    </section>
+  );
+}
+
 // 공개 사이트. 시안(v1/v2) 선택 시 통째로 교체됨
 function Site() {
   const { design } = useDesign();
@@ -63,6 +75,7 @@ function Site() {
             <Route path="/projects/overview" element={<InfoPage />} />
             <Route path="/projects/ongoing" element={<InfoPage />} />
             <Route path="/designs" element={<DesignPilot />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <Footer />

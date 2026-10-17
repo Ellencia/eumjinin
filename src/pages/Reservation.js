@@ -43,10 +43,10 @@ function Reservation() {
         </div>
 
         <div className="resv-notice">
-          <span className="resv-notice-icon">🔧</span>
+          <span className="resv-notice-icon">📋</span>
           <div>
-            <strong>무인 예약 시스템 오픈 예정</strong>
-            <p>회원가입 후 24시간 온라인으로 예약·결제·입장까지 가능한 무인 운영 시스템을 준비 중입니다.</p>
+            <strong>예약은 신청 → 담당자 확인 순으로 진행됩니다</strong>
+            <p>신청 직후에는 "신청" 상태이며, 담당자가 확인 후 연락드리면 확정됩니다. 변경·취소는 담당자에게 연락해 주세요.</p>
           </div>
         </div>
 
