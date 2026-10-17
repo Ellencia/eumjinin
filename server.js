@@ -48,7 +48,7 @@ db.exec(`
 const RESV_STATUS = ['신청', '확정', '취소'];
 const MEMBER_STATUS = ['신청', '연락함', '합류', '보류'];
 const CONSENT_MSG = '개인정보 수집·이용 동의가 필요합니다.';
-const ROOM_NAMES = { 3: '연습실 A', 4: '연습실 B', 5: '레코딩 부스' }; // src/data/spaces.js의 rehearsal 이름. 방이 바뀌면 같이 갱신
+const ROOM_NAMES = {}; // src/data/spaces.js의 rehearsal 이름. 2026-10-17 연습실 미확정(전부 '준비중') → 알림엔 `방 N`. 확정되면 { id: 이름 }
 
 // 신규 신청 텔레그램 알림. 두 env가 없으면 꺼짐. 개인정보는 넣지 않음(텔레그램 서버에 남으므로) → 상세는 /admin에서
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';

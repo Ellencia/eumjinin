@@ -167,7 +167,7 @@ function ReservationDetail() {
   };
 
   useEffect(() => {
-    if (!room || room.type !== 'rehearsal') {
+    if (!room || room.type !== 'rehearsal' || room.name === '준비중') {
       navigate('/reservation', { replace: true });
     }
   }, [room, navigate]);

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import spaces from '../data/spaces';
 import './admin.css';
 
-const ROOMS = spaces.filter(s => s.type === 'rehearsal');
+const ROOMS = spaces.filter(s => s.type === 'rehearsal' && s.name !== '준비중'); // 미확정 방은 `방 N`으로 표시
 const roomName = id => ROOMS.find(r => r.id === id)?.name || `방 ${id}`;
 const RESV_STATUS = ['신청', '확정', '취소'];
 const MEMBER_STATUS = ['신청', '연락함', '합류', '보류'];
