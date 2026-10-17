@@ -24,7 +24,8 @@ fi
 
 ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw --force enable
 
-printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/90-kband.conf
+# sshd는 먼저 읽힌 값이 이김. cloud-init의 50-*.conf(PasswordAuthentication yes)보다 앞서도록 00-
+printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/00-kband.conf
 systemctl reload ssh
 
 id -u kband &>/dev/null || useradd -r -M -d $APP -s /usr/sbin/nologin kband
