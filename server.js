@@ -53,6 +53,8 @@ const ROOM_NAMES = { 3: '연습실 A', 4: '연습실 B', 5: '레코딩 부스' }
 // 신규 신청 텔레그램 알림. 두 env가 없으면 꺼짐. 개인정보는 넣지 않음(텔레그램 서버에 남으므로) → 상세는 /admin에서
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+// Node happy-eyeballs 기본 250ms가 서울→텔레그램 TCP 연결(≈280ms)보다 짧아 ETIMEDOUT. 측정 2026-10-17
+require('net').setDefaultAutoSelectFamilyAttemptTimeout(3000);
 function notify(text) {
   if (!TG_TOKEN || !TG_CHAT) return;
   fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
