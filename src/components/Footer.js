@@ -12,7 +12,11 @@ function Footer() {
           <Link to="/" state={{ scrollTo: 'spaces' }}>공간</Link>
           <Link to="/" state={{ scrollTo: 'join' }}>참여하기</Link>
         </div>
-        <p className="footer-copy">© 2026 음진인. All rights reserved.</p>
+        <p className="footer-legal">
+          음진인 협동조합 · 대표 이완열 · 경기도 고양시 일산서구 일현로 97-11 (탄현동, 일산 위브더제니스)<br />
+          협동조합 설립 신고번호 제2026-3940000-37-5-00018호 (고양시)
+        </p>
+        <p className="footer-copy">© 2026 음진인 협동조합. All rights reserved.</p>
       </div>
     </footer>
   );

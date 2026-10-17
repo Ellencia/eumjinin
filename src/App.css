@@ -664,6 +664,26 @@ main { padding-top: 64px; }
 }
 .value-card:hover { transform: translateY(-4px); }
 
+.about-cert {
+  margin: 56px auto 0;
+  max-width: 420px;
+  text-align: center;
+}
+.about-cert img {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(30, 27, 75, 0.15);
+}
+.about-cert figcaption {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.88rem;
+  color: #6b7280;
+}
+.about-cert figcaption strong { color: #1e1b4b; font-size: 1rem; }
+
 .value-icon { font-size: 2.5rem; display: block; margin-bottom: 16px; }
 .value-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: #4c1d95; }
 .value-card p { font-size: 0.92rem; color: #6b7280; line-height: 1.65; }
@@ -1762,6 +1782,7 @@ main { padding-top: 64px; }
 .footer-links a { font-size: 0.88rem; transition: color 0.2s; }
 .footer-links a:hover { color: #fff; }
 
+.footer-legal { font-size: 0.8rem; opacity: 0.6; line-height: 1.7; margin-top: 12px; }
 .footer-copy { font-size: 0.82rem; opacity: 0.5; margin-top: 8px; }
 
 /* ===== Design Pilot cards ===== */

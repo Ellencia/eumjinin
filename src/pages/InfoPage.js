@@ -38,11 +38,11 @@ const pages = {
   '/about/location': {
     eyebrow: 'About',
     title: '오시는 길',
-    desc: '운영 공간 확정 전까지는 파일럿 안내 페이지로 운영됩니다.',
-    lead: '공간 주소와 상세 교통 안내는 운영지가 확정되는 즉시 업데이트됩니다. 현재는 예약 테스트와 공간 소개 중심으로 확인해 주세요.',
+    desc: '정기 공연은 Art Hall K에서 열립니다. 연습실은 공간 확정 후 안내드립니다.',
+    lead: '공연장 Art Hall K는 행주산성 해찬송학김 건물 지하 1층에 있습니다. 연습실 주소와 교통 안내는 운영지가 확정되는 즉시 업데이트됩니다.',
     location: true,
     points: [
-      '대중교통 접근성을 우선 고려한 공간 선정 진행 중',
+      '연습실: 대중교통 접근성을 우선 고려해 선정 진행 중',
       '악기 반입과 장비 이동이 쉬운 동선 확보 예정',
       '공연·연습 시간대별 출입 안내 확정 후 공지 예정',
     ],
@@ -123,19 +123,19 @@ function LocationBlock() {
     <div className="location-block">
       <div className="location-map-placeholder">
         <span>🗺</span>
-        <p>공간 확정 후 지도가 표시됩니다</p>
+        <p>지도는 연습실 확정 후 함께 표시됩니다</p>
       </div>
       <div className="location-info">
         <div className="location-row">
-          <strong>주소</strong>
+          <strong>공연장</strong>
+          <span>Art Hall K — 경기도 고양시 덕양구 행주산성로 38, 해찬송학김 B1</span>
+        </div>
+        <div className="location-row">
+          <strong>연습실</strong>
           <span>운영지 확정 후 공개 예정</span>
         </div>
         <div className="location-row">
-          <strong>대중교통</strong>
-          <span>확정 후 안내</span>
-        </div>
-        <div className="location-row">
-          <strong>주차</strong>
+          <strong>대중교통·주차</strong>
           <span>확정 후 안내</span>
         </div>
         <div className="location-row">

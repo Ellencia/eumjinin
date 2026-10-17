@@ -1,4 +1,5 @@
 import Reveal from '../components/Reveal';
+import coopCert from '../assets/coop-cert.jpg';
 
 const values = [
   {
@@ -40,6 +41,15 @@ function About() {
             </Reveal>
           ))}
         </div>
+        <Reveal>
+          <figure className="about-cert">
+            <img src={coopCert} alt="음진인 협동조합 설립 신고확인증 (고양시, 2026년 10월 8일)" loading="lazy" />
+            <figcaption>
+              <strong>음진인 협동조합</strong>
+              <span>2026. 10. 08 고양시 설립 신고 · 「협동조합 기본법」</span>
+            </figcaption>
+          </figure>
+        </Reveal>
       </div>
     </section>
   );
