@@ -48,6 +48,19 @@ db.exec(`
 const RESV_STATUS = ['신청', '확정', '취소'];
 const MEMBER_STATUS = ['신청', '연락함', '합류', '보류'];
 const CONSENT_MSG = '개인정보 수집·이용 동의가 필요합니다.';
+const ROOM_NAMES = { 3: '연습실 A', 4: '연습실 B', 5: '레코딩 부스' }; // src/data/spaces.js의 rehearsal 이름. 방이 바뀌면 같이 갱신
+
+// 신규 신청 텔레그램 알림. 두 env가 없으면 꺼짐. 개인정보는 넣지 않음(텔레그램 서버에 남으므로) → 상세는 /admin에서
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+function notify(text) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: TG_CHAT, text: `${text}\nhttps://kband.co.kr/admin` }),
+  }).then(r => { if (!r.ok) console.error('telegram http', r.status); })
+    .catch(e => console.error('telegram:', e.message));
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:00$/;
 
@@ -145,6 +158,7 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   const r = db.prepare('INSERT INTO reservations (roomId, date, startTime, endTime, name, phone) VALUES (?, ?, ?, ?, ?, ?)')
     .run(parseInt(roomId), date, startTime, endTime, name, phone);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid) });
+  notify(`🎸 연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId] || `방 ${roomId}`} · ${date} ${startTime}~${endTime}`);
 });
 
 app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
@@ -159,6 +173,7 @@ app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
   const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid) });
+  notify(`🙋 멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'})`);
 });
 
 // ---------- admin ----------

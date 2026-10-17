@@ -35,6 +35,10 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 | PORT | 8703 | |
 | DB_FILE | ./data/kband.db | |
 | NODE_ENV | | production이면 Secure 쿠키 |
+| TELEGRAM_BOT_TOKEN | (없음) | 둘 다 있으면 신규 예약·멤버 신청 시 텔레그램 알림. 개인정보는 보내지 않음 |
+| TELEGRAM_CHAT_ID | (없음) | 알림 받을 채팅 id |
+
+텔레그램 설정: @BotFather에서 `/newbot` → 토큰. 그 봇에게 아무 메시지나 보낸 뒤 `https://api.telegram.org/bot<토큰>/getUpdates`의 `message.chat.id`가 채팅 id. 서버 `/srv/kband/.env`에 두 줄 추가 후 `systemctl restart kband`.
 
 공개 POST(`/api/members`, `/api/reservations`)는 `consent: true`가 없으면 400. 폼의 개인정보 동의 체크박스가 이 값을 보냄.
 
