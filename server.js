@@ -64,6 +64,7 @@ function notify(text) {
     .catch(e => console.error('telegram:', e.message));
 }
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const isDate = s => DATE_RE.test(s || '') && !isNaN(new Date(s)); // 2026-99-99 → shiftDate에서 throw 방지
 const TIME_RE = /^\d{2}:00$/;
 
 // ---------- helpers ----------
@@ -136,7 +137,7 @@ app.use(express.json({ limit: '32kb' }));
 app.get('/api/reservations', (req, res) => {
   const roomId = parseInt(req.query.roomId);
   const { date } = req.query;
-  if (!roomId || !DATE_RE.test(date || '')) return res.status(400).json({ error: '잘못된 요청입니다.' });
+  if (!roomId || !isDate(date)) return res.status(400).json({ error: '잘못된 요청입니다.' });
   const rows = db.prepare(`
     SELECT date, startTime, endTime FROM reservations
     WHERE roomId = ? AND status != '취소' AND (date = ? OR (date = ? AND CAST(endTime AS INTEGER) > 24))
@@ -146,12 +147,12 @@ app.get('/api/reservations', (req, res) => {
 
 app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   const { roomId, date, startTime, endTime } = req.body;
-  const name = String(req.body.name || '').trim();
+  const name = String(req.body.name || '').trim().slice(0, 100);
   const phone = normalizePhone(req.body.phone);
   if (!roomId || !date || !startTime || !endTime || !name || !phone)
     return res.status(400).json({ error: '모든 항목을 입력해주세요.' });
   if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
-  if (!DATE_RE.test(date) || !TIME_RE.test(startTime) || !TIME_RE.test(endTime) || startTime >= endTime)
+  if (!isDate(date) || !TIME_RE.test(startTime) || !TIME_RE.test(endTime) || startTime >= endTime)
     return res.status(400).json({ error: '날짜 또는 시간 형식이 올바르지 않습니다.' });
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
   if (hasConflict(parseInt(roomId), date, startTime, endTime))
@@ -165,7 +166,8 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
 
 app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
   const f = {};
-  for (const k of ['name', 'email', 'band', 'role', 'location', 'birth', 'genre', 'intro']) f[k] = String(req.body[k] || '').trim();
+  for (const k of ['name', 'email', 'band', 'role', 'location', 'birth', 'genre', 'intro'])
+    f[k] = String(req.body[k] || '').trim().slice(0, k === 'intro' ? 2000 : 100); // 폼은 select/input이지만 API 직접 호출 대비
   const phone = normalizePhone(req.body.phone);
   if (!f.name || !f.email || !phone) return res.status(400).json({ error: '이름, 이메일, 연락처는 필수 항목입니다.' });
   if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
@@ -197,8 +199,8 @@ app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true }));
 app.get('/api/admin/reservations', requireAdmin, (req, res) => {
   const { from, to, roomId, status } = req.query;
   const where = [], args = [];
-  if (DATE_RE.test(from || '')) { where.push('date >= ?'); args.push(from); }
-  if (DATE_RE.test(to || ''))   { where.push('date <= ?'); args.push(to); }
+  if (isDate(from)) { where.push('date >= ?'); args.push(from); }
+  if (isDate(to))   { where.push('date <= ?'); args.push(to); }
   if (parseInt(roomId))         { where.push('roomId = ?'); args.push(parseInt(roomId)); }
   if (status)                   { where.push('status = ?'); args.push(status); }
   const sql = `SELECT * FROM reservations ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY date, startTime`;
@@ -226,7 +228,7 @@ function patchRoute(table, cols, statuses) {
     if ('phone' in req.body) { next.phone = normalizePhone(req.body.phone); if (!PHONE_RE.test(next.phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' }); }
     if (table === 'reservations') {
       next.roomId = parseInt(next.roomId);
-      if (!DATE_RE.test(next.date) || !TIME_RE.test(next.startTime) || !TIME_RE.test(next.endTime) || next.startTime >= next.endTime)
+      if (!isDate(next.date) || !TIME_RE.test(next.startTime) || !TIME_RE.test(next.endTime) || next.startTime >= next.endTime)
         return res.status(400).json({ error: '날짜 또는 시간 형식이 올바르지 않습니다.' });
       if (next.status !== '취소' && hasConflict(next.roomId, next.date, next.startTime, next.endTime, id))
         return res.status(409).json({ error: '해당 시간대에 이미 예약이 있습니다.' });
