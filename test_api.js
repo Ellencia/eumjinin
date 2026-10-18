@@ -49,7 +49,7 @@ async function main() {
   assert.ok(!('phone' in r.data[0]) && !('name' in r.data[0]), '공개 조회에 개인정보 없음');
 
   // 공개 멤버
-  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@b.co', phone: '010-9999-8888', band: '밴드', consent: true });
+  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@b.co', phone: '010-9999-8888', band: '밴드', leader: true, consent: true });
   assert.equal(r.status, 201, '멤버 생성');
   const memId = r.data.id;
   r = await req('POST', '/api/members', { name: '홍길동2', email: 'a@b.co', phone: '01099998888', consent: true });
@@ -70,8 +70,11 @@ async function main() {
   assert.equal(r.data[0].phone, '010-1234-5678', '전화 정규화');
   r = await req('GET', '/api/admin/members?q=길동');
   assert.equal(r.data.length, 1, '멤버 검색');
-  r = await req('PATCH', `/api/admin/members/${memId}`, { status: '합류', memo: '드럼 가능' });
-  assert.equal(r.data.status, '합류'); assert.equal(r.data.memo, '드럼 가능');
+  assert.equal(r.data[0].leader, 1, '리더 플래그 저장');
+  r = await req('GET', '/api/admin/invite');
+  assert.equal(r.status, 200); assert.ok('band' in r.data && 'chat' in r.data && 'chatCode' in r.data, '안내문 재료');
+  r = await req('PATCH', `/api/admin/members/${memId}`, { status: '합류', memo: '드럼 가능', leader: 0 });
+  assert.equal(r.data.status, '합류'); assert.equal(r.data.memo, '드럼 가능'); assert.equal(r.data.leader, 0, '리더 해제');
   r = await req('PATCH', `/api/admin/members/${memId}`, { status: '없는상태' });
   assert.equal(r.status, 400, '잘못된 상태 거부');
   r = await req('PATCH', `/api/admin/reservations/${resvId}`, { status: '취소' });

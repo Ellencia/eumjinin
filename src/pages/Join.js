@@ -62,7 +62,7 @@ function Confetti() {
 
 function Join() {
   const [form, setForm] = useState({
-    name: '', email: '', band: '', role: '',
+    name: '', email: '', band: '', role: '', leader: false,
     location: '', birth: '', genre: '', phone: '', intro: '',
   });
   const [consent, setConsent] = useState(false);
@@ -199,6 +199,14 @@ function Join() {
             </div>
           </div>
 
+          <label className="check-row">
+            <input
+              type="checkbox" name="leader" checked={form.leader}
+              onChange={(e) => setForm({ ...form, leader: e.target.checked })}
+            />
+            <span>밴드 리더(팀장)입니다 <small>— 리더 단톡방에도 초대해 드립니다</small></span>
+          </label>
+
           <div className="form-row">
             <div className="form-group">
               <label>거주지</label>
@@ -250,7 +258,7 @@ function Join() {
 
           <ConsentCheck
             checked={consent} onChange={setConsent}
-            items="이름, 이메일, 연락처(필수) / 소속 밴드, 역할, 거주지, 생년월일, 장르, 자기소개(선택)"
+            items="이름, 이메일, 연락처(필수) / 소속 밴드, 역할, 리더 여부, 거주지, 생년월일, 장르, 자기소개(선택)"
             purpose="멤버 신청 접수 및 연락"
           />
 

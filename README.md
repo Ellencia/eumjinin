@@ -37,6 +37,11 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 | NODE_ENV | | production이면 Secure 쿠키 |
 | TELEGRAM_BOT_TOKEN | (없음) | 둘 다 있으면 신규 예약·멤버 신청 시 텔레그램 알림. 개인정보는 보내지 않음 |
 | TELEGRAM_CHAT_ID | (없음) | 알림 받을 채팅 id |
+| BAND_INVITE_URL | (없음) | 네이버 밴드 초대 링크. /admin 멤버 신청의 "복사" 안내문에 들어감 |
+| KAKAO_OPEN_URL | (없음) | 밴드 리더 오픈채팅 링크. 신청자가 "밴드 리더" 체크했을 때만 안내문에 추가 |
+| KAKAO_OPEN_CODE | (없음) | 오픈채팅 참여코드 |
+
+합류 안내는 사이트가 보내지 않는다. 관리자가 /admin에서 "복사"를 눌러 문자·카톡으로 직접 보낸다(신청자 연락처가 외부 서비스에 남지 않게).
 
 텔레그램 설정: @BotFather에서 `/newbot` → 토큰. 그 봇에게 아무 메시지나 보낸 뒤 `https://api.telegram.org/bot<토큰>/getUpdates`의 `message.chat.id`가 채팅 id. 서버 `/srv/kband/.env`에 두 줄 추가 후 `systemctl restart kband`.
 

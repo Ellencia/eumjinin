@@ -100,10 +100,28 @@ function Reservations({ onAuthFail }) {
   );
 }
 
+// 합류 안내문. 링크·참여코드는 서버 .env(BAND_INVITE_URL·KAKAO_OPEN_URL·KAKAO_OPEN_CODE). 관리자가 복사해서 문자·카톡으로 보냄
+function inviteText(m, inv) {
+  const lines = [`${m.name}님, 음진인 멤버 신청 확인했습니다.`];
+  if (inv.band) lines.push('아래 링크로 밴드(네이버 BAND) 가입 신청해 주시면 승인해 드리겠습니다.', inv.band);
+  if (m.leader && inv.chat) {
+    lines.push('', '밴드 리더 단톡방(카카오 오픈채팅)에도 참여해 주세요.', inv.chat);
+    if (inv.chatCode) lines.push(`참여코드: ${inv.chatCode}`);
+  }
+  return lines.join('\n');
+}
+
 function Members({ onAuthFail }) {
   const [f, setF] = useState({ q: '', status: '' });
   const [rows, setRows] = useState([]);
   const [err, setErr] = useState('');
+  const [inv, setInv] = useState({});
+  const [copied, setCopied] = useState(0);
+  useEffect(() => { api('/api/admin/invite').then(setInv).catch(() => {}); }, []);
+  const copy = async m => {
+    try { await navigator.clipboard.writeText(inviteText(m, inv)); setCopied(m.id); setTimeout(() => setCopied(0), 1500); }
+    catch { setErr('클립보드 복사 실패'); }
+  };
 
   const load = useCallback(async () => {
     try { setRows(await api('/api/admin/members?' + new URLSearchParams(f))); setErr(''); }
@@ -130,7 +148,7 @@ function Members({ onAuthFail }) {
       </div>
       {err && <p className="adm-error">{err}</p>}
       <table className="adm-table">
-        <thead><tr><th>신청일</th><th>이름</th><th>연락처</th><th>이메일</th><th>밴드</th><th>역할</th><th>장르</th><th>지역</th><th>생년</th><th>소개</th><th>상태</th><th>메모</th><th></th></tr></thead>
+        <thead><tr><th>신청일</th><th>이름</th><th>연락처</th><th>이메일</th><th>밴드</th><th>역할</th><th>리더</th><th>장르</th><th>지역</th><th>생년</th><th>소개</th><th>상태</th><th>메모</th><th>안내문</th><th></th></tr></thead>
         <tbody>
           {rows.map(m => (
             <tr key={m.id} className={`st-${m.status}`}>
@@ -138,14 +156,19 @@ function Members({ onAuthFail }) {
               <td>{m.name}</td>
               <td><a href={`tel:${m.phone}`}>{m.phone}</a></td>
               <td><a href={`mailto:${m.email}`}>{m.email}</a></td>
-              <td>{m.band}</td><td>{m.role}</td><td>{m.genre}</td><td>{m.location}</td><td>{m.birth}</td>
+              <td>{m.band}</td><td>{m.role}</td>
+              <td><input type="checkbox" checked={!!m.leader} onChange={e => patch(m.id, { leader: e.target.checked ? 1 : 0 })} title="밴드 리더" /></td>
+              <td>{m.genre}</td><td>{m.location}</td><td>{m.birth}</td>
               <td className="adm-intro" title={m.intro}>{m.intro}</td>
               <td><select value={m.status} onChange={e => patch(m.id, { status: e.target.value })}>{MEMBER_STATUS.map(s => <option key={s}>{s}</option>)}</select></td>
               <td><MemoInput value={m.memo} onSave={memo => patch(m.id, { memo })} /></td>
+              <td><button className="adm-copy" onClick={() => copy(m)} disabled={!inv.band && !inv.chat}
+                title={inv.band || inv.chat ? '밴드 링크(리더면 오픈채팅까지) 안내문을 클립보드로' : '서버 .env에 BAND_INVITE_URL 등이 없음'}>
+                {copied === m.id ? '복사됨' : '복사'}</button></td>
               <td><button className="adm-del" onClick={() => remove(m.id)} title="삭제">✕</button></td>
             </tr>
           ))}
-          {rows.length === 0 && <tr><td colSpan={13} className="adm-empty">신청 없음</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={15} className="adm-empty">신청 없음</td></tr>}
         </tbody>
       </table>
     </>

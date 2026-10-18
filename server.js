@@ -44,10 +44,19 @@ db.exec(`
     createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
   );
 `);
+// 2026-10-18 추가 열. 기존 DB엔 ALTER로 (CREATE IF NOT EXISTS는 열을 안 늘림)
+if (!db.prepare('PRAGMA table_info(members)').all().some(c => c.name === 'leader'))
+  db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
 
 const RESV_STATUS = ['신청', '확정', '취소'];
 const MEMBER_STATUS = ['신청', '연락함', '합류', '보류'];
 const CONSENT_MSG = '개인정보 수집·이용 동의가 필요합니다.';
+// 합류 안내문 재료. 서버 .env에만 둠(공개 저장소 금지). 관리자가 /admin에서 복사해 문자·카톡으로 직접 보냄 — 사이트는 신청자에게 메일·문자를 보내지 않음
+const INVITE = {
+  band: process.env.BAND_INVITE_URL || '',   // 네이버 밴드 초대 링크(가입 승인은 밴드에서)
+  chat: process.env.KAKAO_OPEN_URL || '',    // 밴드 리더 오픈채팅 링크
+  chatCode: process.env.KAKAO_OPEN_CODE || '', // 오픈채팅 참여코드
+};
 const ROOM_NAMES = {}; // src/data/spaces.js의 rehearsal 이름. 2026-10-17 연습실 미확정(전부 '준비중') → 알림엔 `방 N`. 확정되면 { id: 이름 }
 
 // 신규 신청 텔레그램 알림. 두 env가 없으면 꺼짐. 개인정보는 넣지 않음(텔레그램 서버에 남으므로) → 상세는 /admin에서
@@ -174,10 +183,11 @@ app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
   if (db.prepare('SELECT 1 FROM members WHERE phone = ?').get(phone))
     return res.status(409).json({ error: '이미 같은 연락처로 신청된 내역이 있습니다.' });
-  const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro);
+  const leader = req.body.leader === true ? 1 : 0;
+  const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro, leader)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro, leader);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid) });
-  notify(`멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'})`);
+  notify(`멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'}${leader ? ' · 밴드 리더' : ''})`);
 });
 
 // ---------- admin ----------
@@ -195,6 +205,7 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ ok: true });
 });
 app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true }));
+app.get('/api/admin/invite', requireAdmin, (req, res) => res.json(INVITE));
 
 app.get('/api/admin/reservations', requireAdmin, (req, res) => {
   const { from, to, roomId, status } = req.query;
@@ -226,6 +237,7 @@ function patchRoute(table, cols, statuses) {
     for (const c of cols) if (c in req.body) next[c] = String(req.body[c] ?? '').trim();
     if (!statuses.includes(next.status)) return res.status(400).json({ error: '잘못된 상태값입니다.' });
     if ('phone' in req.body) { next.phone = normalizePhone(req.body.phone); if (!PHONE_RE.test(next.phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' }); }
+    if (table === 'members') next.leader = Number(next.leader) ? 1 : 0;
     if (table === 'reservations') {
       next.roomId = parseInt(next.roomId);
       if (!isDate(next.date) || !TIME_RE.test(next.startTime) || !TIME_RE.test(next.endTime) || next.startTime >= next.endTime)
@@ -240,7 +252,7 @@ function patchRoute(table, cols, statuses) {
 app.patch('/api/admin/reservations/:id', requireAdmin,
   patchRoute('reservations', ['roomId', 'date', 'startTime', 'endTime', 'name', 'phone', 'status', 'memo'], RESV_STATUS));
 app.patch('/api/admin/members/:id', requireAdmin,
-  patchRoute('members', ['name', 'email', 'phone', 'band', 'role', 'location', 'birth', 'genre', 'intro', 'status', 'memo'], MEMBER_STATUS));
+  patchRoute('members', ['name', 'email', 'phone', 'band', 'role', 'location', 'birth', 'genre', 'intro', 'leader', 'status', 'memo'], MEMBER_STATUS));
 app.delete('/api/admin/reservations/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM reservations WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
