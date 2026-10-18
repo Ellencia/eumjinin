@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { MapIcon } from '../components/Icons';
 
 /* ── Q&A 데이터 ── */
 const FAQ = [
@@ -120,6 +121,7 @@ function LocationBlock() {
   return (
     <div className="location-block">
       <div className="location-map-placeholder">
+        <span><MapIcon /></span>
         <p>지도는 연습실 확정 후 함께 표시됩니다</p>
       </div>
       <div className="location-info">

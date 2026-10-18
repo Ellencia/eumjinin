@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import spaces from '../data/spaces';
+import { WrenchIcon } from '../components/Icons';
 
 // '준비중'(연습실 미확정, 2026-10-17)은 예약 대상에서 제외
 const rehearsalRooms = spaces.filter((s) => s.type === 'rehearsal' && s.name !== '준비중');
@@ -19,6 +20,7 @@ function Reservation() {
 
         {rehearsalRooms.length === 0 && (
           <div className="resv-notice">
+            <span className="resv-notice-icon"><WrenchIcon /></span>
             <div>
               <strong>연습실은 준비 중입니다</strong>
               <p>운영 공간이 확정되면 이곳에서 예약을 받습니다. 공연은 Art Hall K에서 진행됩니다.</p>

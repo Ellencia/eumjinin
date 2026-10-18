@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import Reveal from '../components/Reveal';
 import ConsentCheck from '../components/ConsentCheck';
+import { AnimatedCheck } from '../components/Icons';
 
 const GENRES = ['팝', '록', '재즈', 'R&B', '클래식', '힙합', '인디', '기타'];
 const ROLES = ['보컬', '기타', '베이스', '드럼', '키보드/피아노', '현악기', '관악기', '작곡/편곡', '그 외'];
@@ -135,6 +136,7 @@ function Join() {
       <section className="join" id="join">
         <Confetti />
         <div className="section-container join-success">
+          <AnimatedCheck />
           <h2>신청이 완료됐어요!</h2>
           <p>{form.name}님, 신청이 접수되었습니다.<br />담당자가 확인 후 연락드릴게요.</p>
           <button className="btn btn-primary" onClick={() => setSubmitted(false)}>

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/Logo1.png';
+import { MusicIcon, DoorOpenIcon, SproutIcon, CalendarIcon, CommunityIcon } from './Icons';
 
 const NAV_ITEMS = [
   {
     label: '소개',
+    Icon: MusicIcon,
     dropdown: [
       { label: '인사말',    href: '/about/greeting' },
       { label: '연혁',      href: '/about/history' },
@@ -13,6 +15,7 @@ const NAV_ITEMS = [
   },
   {
     label: '공간',
+    Icon: DoorOpenIcon,
     dropdown: [
       { label: '공간 안내',  href: '/spaces' },
       { label: '자료실',     href: '/community/archive' },
@@ -20,6 +23,7 @@ const NAV_ITEMS = [
   },
   {
     label: '커뮤니티',
+    Icon: CommunityIcon,
     dropdown: [
       { label: '자유게시판', href: '/community/board' },
       { label: 'Q&A', href: '/community/qna' },
@@ -27,6 +31,7 @@ const NAV_ITEMS = [
   },
   {
     label: '프로젝트',
+    Icon: SproutIcon,
     dropdown: [
       { label: '프로젝트 연혁', href: '/projects/overview' },
       { label: '진행 중 프로젝트', href: '/projects/ongoing' },
@@ -84,7 +89,7 @@ function Navbar() {
         <div className="mega-overlay" onMouseEnter={() => setActiveMenu(null)} />
       )}
 
-      <nav className={`navbar${scrolled ? ' navbar-scrolled' : ''}${hidden ? ' navbar-hidden' : ''}`} onMouseLeave={() => setActiveMenu(null)}>
+      <nav className={`navbar${scrolled ? ' navbar-scrolled' : ''}${hidden && !mobileOpen ? ' navbar-hidden' : ''}`} onMouseLeave={() => setActiveMenu(null)}>
         <div className="navbar-inner">
 
           {/* 로고 */}
@@ -100,7 +105,11 @@ function Navbar() {
                 className={`nav-item ${activeMenu === item.label ? 'nav-active' : ''}`}
                 onMouseEnter={() => setActiveMenu(item.label)}
               >
-                <span className="nav-link">{item.label}</span>
+                <button type="button" className="nav-link nav-menu-button"
+                  aria-expanded={activeMenu === item.label}
+                  onClick={() => setActiveMenu(activeMenu === item.label ? null : item.label)}>
+                  <span className="menu-icon"><item.Icon /></span>{item.label}
+                </button>
               </li>
             ))}
           </ul>
@@ -114,7 +123,7 @@ function Navbar() {
                   className={`nav-link ${item.highlight ? 'nav-highlight' : 'nav-preview-link'}`}
                   onClick={closeAll}
                 >
-                  {item.label}
+                  <span className="menu-icon"><CalendarIcon /></span>{item.label}
                 </Link>
               </li>
             ))}
@@ -126,8 +135,10 @@ function Navbar() {
           </ul>
 
           {/* 모바일 햄버거 */}
-          <button className="navbar-toggle" onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? '✕' : '☰'}
+          <button className={`navbar-toggle${mobileOpen ? ' is-open' : ''}`}
+            aria-label={mobileOpen ? '메뉴 닫기' : '메뉴 열기'} aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation" onClick={() => setMobileOpen(!mobileOpen)}>
+            <span /><span /><span />
           </button>
         </div>
 
@@ -162,16 +173,17 @@ function Navbar() {
 
       {/* 모바일 메뉴 */}
       {mobileOpen && (
-        <div className="mobile-menu">
+        <div className="mobile-menu" id="mobile-navigation">
           {NAV_ITEMS.map((item) => (
             <div key={item.label} className="mobile-item">
               <button
                 className="mobile-trigger"
+                aria-expanded={mobileExpanded === item.label}
                 onClick={() =>
                   setMobileExpanded(mobileExpanded === item.label ? null : item.label)
                 }
               >
-                {item.label}
+                <span className="menu-label"><span className="menu-icon"><item.Icon /></span>{item.label}</span>
                 <span className={`mobile-arrow ${mobileExpanded === item.label ? 'up' : ''}`}>▾</span>
               </button>
               {mobileExpanded === item.label && (
@@ -194,7 +206,7 @@ function Navbar() {
                 className={`mobile-link ${item.highlight ? 'mobile-highlight' : ''}`}
                 onClick={closeAll}
               >
-                {item.label}
+                <span className="menu-icon"><CalendarIcon /></span>{item.label}
               </Link>
             </div>
           ))}

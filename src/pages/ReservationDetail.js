@@ -4,6 +4,7 @@ import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import spaces from '../data/spaces';
 import ConsentCheck from '../components/ConsentCheck';
+import { AnimatedCheck } from '../components/Icons';
 
 const TIME_SLOTS = [
   '00:00', '01:00', '02:00', '03:00', '04:00',
@@ -180,6 +181,7 @@ function ReservationDetail() {
         <div className="section-container">
           <div className="resv-detail">
             <div className="resv-submitted">
+              <AnimatedCheck />
               <h2>신청이 접수되었습니다</h2>
               <p>
                 <strong>{room.name}</strong> · {toDateStr(selectedDate)}<br />
