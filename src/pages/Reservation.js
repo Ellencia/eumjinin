@@ -19,7 +19,6 @@ function Reservation() {
 
         {rehearsalRooms.length === 0 && (
           <div className="resv-notice">
-            <span className="resv-notice-icon">🚧</span>
             <div>
               <strong>연습실은 준비 중입니다</strong>
               <p>운영 공간이 확정되면 이곳에서 예약을 받습니다. 공연은 Art Hall K에서 진행됩니다.</p>
@@ -54,7 +53,6 @@ function Reservation() {
 
         {rehearsalRooms.length > 0 && (
         <div className="resv-notice">
-          <span className="resv-notice-icon">📋</span>
           <div>
             <strong>예약은 신청 → 담당자 확인 순으로 진행됩니다</strong>
             <p>신청 직후에는 "신청" 상태이며, 담당자가 확인 후 연락드리면 확정됩니다. 변경·취소는 그때 안내드리는 연락처로 요청해 주세요.</p>

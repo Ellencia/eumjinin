@@ -5,7 +5,7 @@ function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
-        <span className="footer-logo">🎵 음진인</span>
+        <span className="footer-logo">음진인</span>
         <p className="footer-tagline">음악을 사랑하는 모든 이들을 위한 공간</p>
         <div className="footer-links">
           <Link to="/" state={{ scrollTo: 'about' }}>소개</Link>

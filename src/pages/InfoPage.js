@@ -120,7 +120,6 @@ function LocationBlock() {
   return (
     <div className="location-block">
       <div className="location-map-placeholder">
-        <span>🗺</span>
         <p>지도는 연습실 확정 후 함께 표시됩니다</p>
       </div>
       <div className="location-info">

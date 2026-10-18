@@ -684,7 +684,6 @@ main { padding-top: 64px; }
 }
 .about-cert figcaption strong { color: #1e1b4b; font-size: 1rem; }
 
-.value-icon { font-size: 2.5rem; display: block; margin-bottom: 16px; }
 .value-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; color: #4c1d95; }
 .value-card p { font-size: 0.92rem; color: #6b7280; line-height: 1.65; }
 
@@ -954,7 +953,6 @@ main { padding-top: 64px; }
   align-items: center;
   gap: 16px;
 }
-.success-icon { font-size: 4rem; }
 .join-success h2 { font-size: 1.8rem; font-weight: 800; }
 .join-success p { color: #6b7280; line-height: 1.7; }
 
@@ -1034,8 +1032,6 @@ main { padding-top: 64px; }
   align-items: flex-start;
   gap: 16px;
 }
-
-.resv-notice-icon { font-size: 1.8rem; flex-shrink: 0; }
 
 .resv-notice strong {
   display: block;
@@ -1239,7 +1235,6 @@ main { padding-top: 64px; }
   text-align: center;
   padding: 80px 24px;
 }
-.resv-submitted-icon { font-size: 3rem; margin-bottom: 20px; }
 .resv-submitted h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 16px; }
 .resv-submitted p { color: #6b7280; line-height: 1.8; margin-bottom: 32px; }
 

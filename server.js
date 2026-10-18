@@ -161,7 +161,7 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   const r = db.prepare('INSERT INTO reservations (roomId, date, startTime, endTime, name, phone) VALUES (?, ?, ?, ?, ?, ?)')
     .run(parseInt(roomId), date, startTime, endTime, name, phone);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid) });
-  notify(`🎸 연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId] || `방 ${roomId}`} · ${date} ${startTime}~${endTime}`);
+  notify(`연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId] || `방 ${roomId}`} · ${date} ${startTime}~${endTime}`);
 });
 
 app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
@@ -177,7 +177,7 @@ app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
   const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid) });
-  notify(`🙋 멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'})`);
+  notify(`멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'})`);
 });
 
 // ---------- admin ----------

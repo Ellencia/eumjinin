@@ -180,7 +180,6 @@ function ReservationDetail() {
         <div className="section-container">
           <div className="resv-detail">
             <div className="resv-submitted">
-              <div className="resv-submitted-icon">✅</div>
               <h2>신청이 접수되었습니다</h2>
               <p>
                 <strong>{room.name}</strong> · {toDateStr(selectedDate)}<br />

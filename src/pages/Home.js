@@ -76,7 +76,7 @@ function Home() {
         style={{ opacity: scrollProgress }}
       />
       <div className="hero-content">
-        <p className="hero-eyebrow">🎶 Music Community & Space</p>
+        <p className="hero-eyebrow">Music Community & Space</p>
         <h1 className="hero-title">
           음악을 사랑하는<br />모든 이들을 위한 공간
         </h1>

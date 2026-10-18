@@ -114,7 +114,7 @@ function Navbar() {
                   className={`nav-link ${item.highlight ? 'nav-highlight' : 'nav-preview-link'}`}
                   onClick={closeAll}
                 >
-                  {item.highlight ? '🎸 ' : ''}{item.label}
+                  {item.label}
                 </Link>
               </li>
             ))}
@@ -194,7 +194,7 @@ function Navbar() {
                 className={`mobile-link ${item.highlight ? 'mobile-highlight' : ''}`}
                 onClick={closeAll}
               >
-                {item.highlight ? '🎸 ' : ''}{item.label}
+                {item.label}
               </Link>
             </div>
           ))}

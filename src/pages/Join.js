@@ -135,7 +135,6 @@ function Join() {
       <section className="join" id="join">
         <Confetti />
         <div className="section-container join-success">
-          <span className="success-icon">🎉</span>
           <h2>신청이 완료됐어요!</h2>
           <p>{form.name}님, 신청이 접수되었습니다.<br />담당자가 확인 후 연락드릴게요.</p>
           <button className="btn btn-primary" onClick={() => setSubmitted(false)}>
