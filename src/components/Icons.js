@@ -2,21 +2,6 @@
 // 라이선스 전문: public/third-party-licenses.txt. 색은 currentColor, 크기는 부모 font-size(1em).
 const base = { width: '1em', height: '1em', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
 
-// 아래 두 도형은 이 프로젝트에서 직접 작성.
-export const CalendarIcon = () => (
-  <svg {...base} strokeWidth="2">
-    <rect x="3" y="5" width="18" height="16" rx="2" />
-    <path d="M7 3v4m10-4v4M3 10h18m-14 5h3m4 0h3" />
-  </svg>
-);
-
-export const CommunityIcon = () => (
-  <svg {...base} strokeWidth="2">
-    <circle cx="9" cy="8" r="3" /><circle cx="18" cy="9" r="2" />
-    <path d="M3 21v-2a6 6 0 0 1 12 0v2m2-6a4 4 0 0 1 4 4v2" />
-  </svg>
-);
-
 export const MusicIcon = () => (
   <svg {...base} strokeWidth="2">
     <path d="M21 16V3a1 1 0 0 0-1.28-.96l-10 2.917a1 1 0 0 0-.72.96V19" />
