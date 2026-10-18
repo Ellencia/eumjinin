@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { SLIDES } from './HeroSlider';
+
+// 스플래시 체류: 히어로 첫 사진 디코드 + 폰트 준비를 기다리되 MIN~MAX 사이로 묶는다. 준비 전엔 90%까지만 시간 기반으로 오른다.
+const MIN_MS = 500;
+const MAX_MS = 3000;
 
 function getWaveClipPath(progress, offset, isMobile) {
   const amplitude = isMobile ? 14 : 8;
@@ -34,27 +39,32 @@ function LoadingSplash({ onDone }) {
     return () => cancelAnimationFrame(waveRafRef.current);
   }, []);
 
-  // 로딩 진행도 애니메이션
+  // 로딩 진행도: 실제 준비(첫 히어로 사진·폰트)를 기다림
   useEffect(() => {
-    const duration = 1800;
     const start = Date.now();
+    let ready = false;
+    let raf = null;
+
+    const img = new Image();
+    img.src = SLIDES[0].src;
+    const waits = [img.decode().catch(() => {}), document.fonts ? document.fonts.ready : Promise.resolve()];
+    Promise.race([Promise.all(waits), new Promise((r) => setTimeout(r, MAX_MS))]).then(() => { ready = true; });
 
     const tick = () => {
       const elapsed = Date.now() - start;
-      const p = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 2);
-      setProgress(Math.floor(eased * 100));
-
-      if (p < 1) {
-        requestAnimationFrame(tick);
-      } else {
+      if (ready && elapsed >= MIN_MS) {
         setProgress(100);
         setTimeout(() => setFading(true), 200);
         setTimeout(onDone, 800);
+        return;
       }
+      const p = Math.min(elapsed / 1500, 1);
+      setProgress(Math.floor((1 - Math.pow(1 - p, 2)) * 90));
+      raf = requestAnimationFrame(tick);
     };
 
-    requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [onDone]);
 
   return (

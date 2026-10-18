@@ -11,6 +11,7 @@ function Footer() {
           <Link to="/" state={{ scrollTo: 'about' }}>소개</Link>
           <Link to="/" state={{ scrollTo: 'spaces' }}>공간</Link>
           <Link to="/" state={{ scrollTo: 'join' }}>참여하기</Link>
+          <Link to="/privacy">개인정보처리방침</Link>
         </div>
         <p className="footer-legal">
           음진인 협동조합 · 대표 이완열 · 경기도 고양시 일산서구 일현로 97-11 (탄현동, 일산 위브더제니스)<br />

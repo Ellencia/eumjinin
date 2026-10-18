@@ -1,15 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import spaces from '../data/spaces';
 
+// 원본(2000px)은 라이트박스, thumbs/(800px, make_thumbs.py 산출)는 갤러리 격자용
 import hallk1 from '../assets/hallk1.webp';
 import hallk2 from '../assets/hallk2.webp';
 import hallk3 from '../assets/hallk3.webp';
 import hallk4 from '../assets/hallk4.webp';
 import hallk5 from '../assets/hallk5.webp';
+import hallk1t from '../assets/thumbs/hallk1.webp';
+import hallk2t from '../assets/thumbs/hallk2.webp';
+import hallk3t from '../assets/thumbs/hallk3.webp';
+import hallk4t from '../assets/thumbs/hallk4.webp';
+import hallk5t from '../assets/thumbs/hallk5.webp';
 
 const SPACE_IMAGES = {
-  6: [hallk1, hallk2, hallk3, hallk4, hallk5],
+  6: { full: [hallk1, hallk2, hallk3, hallk4, hallk5], thumb: [hallk1t, hallk2t, hallk3t, hallk4t, hallk5t] },
 };
 
 const typeLabel = { stage: '무대', rehearsal: '연습실' };
@@ -18,8 +24,23 @@ const typeColor = { stage: '#7c3aed', rehearsal: '#0ea5e9' };
 function Lightbox({ images, index, onClose }) {
   const [current, setCurrent] = useState(index);
 
-  const prev = (e) => { e.stopPropagation(); setCurrent((c) => (c - 1 + images.length) % images.length); };
-  const next = (e) => { e.stopPropagation(); setCurrent((c) => (c + 1) % images.length); };
+  const prev = (e) => { e?.stopPropagation(); setCurrent((c) => (c - 1 + images.length) % images.length); };
+  const next = (e) => { e?.stopPropagation(); setCurrent((c) => (c + 1) % images.length); };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowLeft') prev();
+      else if (e.key === 'ArrowRight') next();
+      else if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [images.length, onClose]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 양옆 원본 미리 받기
+  useEffect(() => {
+    [current - 1, current + 1].forEach((i) => { new Image().src = images[(i + images.length) % images.length]; });
+  }, [current, images]);
 
   return (
     <div className="lightbox-overlay" onClick={onClose}>
@@ -39,7 +60,7 @@ function Lightbox({ images, index, onClose }) {
 
 function SpaceGallery({ images }) {
   const [lightboxIndex, setLightboxIndex] = useState(null);
-  const [main, ...rest] = images;
+  const [main, ...rest] = images.thumb;
 
   return (
     <>
@@ -53,7 +74,7 @@ function SpaceGallery({ images }) {
         <div className="gallery-grid">
           {rest.map((img, i) => (
             <div key={i} className="gallery-thumb" onClick={() => setLightboxIndex(i + 1)}>
-              <img src={img} alt={`사진 ${i + 2}`} />
+              <img src={img} alt={`사진 ${i + 2}`} loading="lazy" />
               <span className="gallery-zoom">⊕</span>
             </div>
           ))}
@@ -62,7 +83,7 @@ function SpaceGallery({ images }) {
 
       {lightboxIndex !== null && (
         <Lightbox
-          images={images}
+          images={images.full}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
         />

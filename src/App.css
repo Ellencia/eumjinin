@@ -692,6 +692,7 @@ main { padding-top: 64px; }
 }
 .about-cert img {
   width: 100%;
+  aspect-ratio: 900 / 1345; /* 원본 비율. 이미지 도착 전에 자리를 잡아 #join 스크롤 위치가 어긋나지 않게 */
   border-radius: 8px;
   box-shadow: 0 12px 32px rgba(30, 27, 75, 0.15);
 }
@@ -947,6 +948,7 @@ main { padding-top: 64px; }
 }
 .consent-row input { margin-top: 4px; flex-shrink: 0; }
 .consent-row strong { color: #374151; }
+.consent-row a { font-weight: 700; color: #7c3aed; text-decoration: underline; }
 
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 0.9rem; font-weight: 600; color: #374151; }
