@@ -905,25 +905,62 @@ main { padding-top: 64px; }
   border-radius: 50px;
 }
 
-/* ===== Join ===== */
-.join { background: #fff; }
+/* ===== Join (시안 A+D: 공간상세의 어두운 톤 + 세 단계) ===== */
+.join { background: #111116; color: #EDEBE4; font-family: 'IBM Plex Sans KR', sans-serif; line-height: 1.7; word-break: keep-all; }
+.join-inner { max-width: 1100px; margin: 0 auto; padding: 96px 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 48px 64px; }
+.join-kicker { margin: 0 0 12px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.12em; color: #F2E205; }
+.join-title { margin: 0 0 20px; font-family: 'Hahmlet', serif; font-weight: 700; font-size: clamp(44px, 6vw, 64px); line-height: 1; }
+.join-lead { margin: 0; max-width: 32ch; color: #A3A1A8; }
 
-.join-form {
-  max-width: 540px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+.join-prog { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+.join-prog i { height: 3px; background: #3a3a44; transition: background 0.25s; }
+.join-prog i.on { background: #F2E205; }
+.join-steps { list-style: none; display: flex; justify-content: space-between; margin: 0 0 8px; padding: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #A3A1A8; }
+.join-steps .cur { color: #EDEBE4; }
+
+.join-step { border: 0; margin: 0; padding: 0; min-width: 0; animation: join-step-in 0.3s ease-out; }
+@keyframes join-step-in { from { opacity: 0; transform: translateX(16px); } }
+.join-step h3 { margin: 0 0 6px; font-family: 'Hahmlet', serif; font-weight: 700; font-size: clamp(26px, 3vw, 32px); outline: none; }
+.join-q { margin: 0 0 28px; color: #A3A1A8; font-size: 15px; }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 28px 32px;
+  margin-bottom: 28px;
 }
+.form-full { grid-column: 1 / -1; }
 
-@media (max-width: 640px) {
+.join-nav { display: flex; gap: 12px; margin-top: 36px; }
+.join-next { padding: 16px 32px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; border-radius: 2px; }
+.join-back { display: block; margin: 0 0 20px; padding: 4px 0; background: none; border: 0; color: #A3A1A8; font-family: 'IBM Plex Mono', monospace; font-size: 13px; cursor: pointer; }
+.join-back:hover { color: #F2E205; }
+.join-back:disabled { visibility: hidden; }
+.join-next { flex: 1; max-width: 280px; background: #F2E205; color: #111116; border: 0; }
+.join-next:hover { filter: brightness(1.08); }
+.join-next:disabled { opacity: 0.6; cursor: default; }
+.join .ripple-circle { background: rgba(17, 17, 22, 0.25); }
+.join .form-error { margin: 20px 0 0; text-align: left; color: #ff7a6b; }
+
+.join .consent-row { color: #A3A1A8; }
+.join .consent-row strong { color: #EDEBE4; }
+.join .consent-row a { color: #EDEBE4; }
+.join .consent-row input, .join .check-row input { accent-color: #F2E205; }
+.join .check-row { color: #EDEBE4; font-weight: 400; }
+.join .check-row small { color: #A3A1A8; }
+
+/* 완료 체크·색종이도 노랑 계열로 (체크 부품은 예약 완료와 공유하므로 여기서만 덮음) */
+.join .check-anim-bg { fill: #F2E205; }
+.join .check-anim-ring { stroke: #F2E205; }
+.join .check-anim-mark { stroke: #111116; }
+
+@media (max-width: 720px) {
+  .join-inner { grid-template-columns: 1fr; gap: 28px; padding: 64px 16px; }
   .form-row { grid-template-columns: 1fr; }
+  .join-next { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .join-step { animation: none; }
 }
 
 .consent-row {
@@ -937,34 +974,41 @@ main { padding-top: 64px; }
 .check-row { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 600; color: #374151; cursor: pointer; }
 .check-row small { font-weight: 400; color: #6b7280; }
 
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 0.9rem; font-weight: 600; color: #374151; }
+.form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.form-group label { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #A3A1A8; }
+.form-group label em { font-style: normal; color: #F2E205; }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
-  padding: 12px 16px;
-  border: 1.5px solid #d1d5db;
-  border-radius: 10px;
-  font-size: 0.95rem;
+  padding: 8px 0;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-bottom: 1px solid #3a3a44;
+  border-radius: 0;
+  font-size: 17px;
   outline: none;
   transition: border-color 0.2s;
   font-family: inherit;
   resize: vertical;
+  color-scheme: dark;
 }
+.form-group select option { background: #111116; }
 .form-group input:focus,
 .form-group select:focus,
-.form-group textarea:focus { border-color: #7c3aed; }
+.form-group textarea:focus { border-bottom-color: #F2E205; }
 
 .join-success {
+  grid-column: 1 / -1;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
 }
-.join-success h2 { font-size: 1.8rem; font-weight: 800; }
-.join-success p { color: #6b7280; line-height: 1.7; }
+.join-success h2 { font-family: 'Hahmlet', serif; font-size: 40px; font-weight: 700; }
+.join-success p { color: #A3A1A8; line-height: 1.7; }
 
 /* 완료 체크 애니메이션: 원이 튀어 들어오고(0~0.5s) 체크가 그려짐(0.3~0.65s), 바깥 링은 퍼지며 사라짐 */
 .check-anim { display: block; width: 96px; height: 96px; margin: 0 auto 20px; overflow: visible; }
