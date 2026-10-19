@@ -178,7 +178,7 @@ function Join() {
       <div className="join-inner">
         <Reveal>
           <p className="join-kicker">JOIN · 멤버 신청</p>
-          <h2 className="join-title">같이<br />무대에<br />서요</h2>
+          <h2 className="join-title">저희와<br />함께<br />해주세요</h2>
           <p className="join-lead">함께 음악을 만들어갈 멤버를 기다리고 있습니다. 매달 정기 공연이 열립니다.</p>
         </Reveal>
         <Reveal delay={120}>
