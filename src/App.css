@@ -1,10 +1,3 @@
-@font-face {
-  font-family: 'JSArirang';
-  src: url('./fonts/JSArirang.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-
 /* ===== Scroll Reveal ===== */
 .reveal {
   opacity: 0;
@@ -1535,6 +1528,14 @@ main { padding-top: 64px; }
   position: relative;
   display: inline-block;
   margin-bottom: 24px;
+}
+
+/* 스플래시 "音眞人" 세 글자만 뽑은 서브셋(Noto Serif TC 900, OFL). 글자를 바꾸면 fontTools subset --text로 다시 만들 것 */
+@font-face {
+  font-family: 'Noto Serif TC';
+  font-weight: 900;
+  font-display: block;
+  src: url('./assets/NotoSerifTC-900-splash.woff2') format('woff2');
 }
 
 .splash-logo {

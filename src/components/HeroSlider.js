@@ -17,8 +17,16 @@ const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 };
 
 function HeroSlider() {
   const [current, setCurrent] = useState(0);
+  // 이 번호까지만 src를 붙임. 첫 방문에 2000px 사진 4장(≈1 MB)을 한꺼번에 받지 않고, 다음 장은 현재 장이 1.5초 보인 뒤에 받음
+  const [loadUpto, setLoadUpto] = useState(0);
   const timerRef = useRef(null);
   const videoRefs = useRef([]);
+
+  useEffect(() => {
+    setLoadUpto((u) => Math.max(u, current));
+    const t = setTimeout(() => setLoadUpto((u) => Math.max(u, current + 1)), 1500);
+    return () => clearTimeout(t);
+  }, [current]);
 
   const goNext = useCallback(() => {
     setCurrent((c) => (c + 1) % SLIDES.length);
@@ -62,7 +70,7 @@ function HeroSlider() {
         return (
           <img
             key={i}
-            src={slide.src}
+            src={i <= loadUpto ? slide.src : undefined}
             alt=""
             className={active ? 'hero-slide-img hero-slide-img-ken' : 'hero-slide-img'}
             style={baseStyle}

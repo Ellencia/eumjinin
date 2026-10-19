@@ -17,6 +17,8 @@
 
 # misc
 .DS_Store
+# 그림 시안(Codex 생성물, 사이트 미연결)
+/output/
 .env.local
 .env.development.local
 .env.test.local

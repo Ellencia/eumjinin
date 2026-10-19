@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import Reveal from '../components/Reveal';
-import ConsentCheck from '../components/ConsentCheck';
+import ConsentCheck, { AgeCheck } from '../components/ConsentCheck';
 import { AnimatedCheck } from '../components/Icons';
 
 const GENRES = ['팝', '록', '재즈', 'R&B', '클래식', '힙합', '인디', '기타'];
@@ -11,11 +11,13 @@ const CONFETTI_COLORS = ['#F2E205', '#FFF27A', '#EDEBE4', '#ffffff', '#A3A1A8'];
 const STEPS = [
   { label: '연락처', title: '어떻게 연락드릴까요?', q: '세 칸 모두 필수입니다.' },
   { label: '밴드', title: '어떤 음악을 하세요?', q: '아직 밴드가 없어도 괜찮습니다.' },
-  { label: '소개', title: '조금만 더 알려주세요', q: '동의 말고는 모두 선택입니다.' },
+  { label: '소개', title: '조금만 더 알려주세요', q: '연령 확인과 동의 말고는 모두 선택입니다.' },
 ];
 const REQUIRED = ['name', 'phone', 'email'];
 
-const today = new Date().toISOString().split('T')[0];
+const today = new Date().toLocaleDateString('sv-SE');
+// server.js under14와 같은 규칙: 14번째 생일 당일부터 허용
+const under14 = (birth) => `${Number(birth.slice(0, 4)) + 14}${birth.slice(4)}` > today;
 
 function getFieldError(name, value) {
   switch (name) {
@@ -76,6 +78,7 @@ function Join() {
     location: '', birth: '', genre: '', phone: '', intro: '',
   });
   const [consent, setConsent] = useState(false);
+  const [age14, setAge14] = useState(false);
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -131,6 +134,7 @@ function Join() {
       if (REQUIRED.some(f => getFieldError(f, form[f]))) return;
     }
     if (step < STEPS.length - 1) { goTo(step + 1); return; }
+    if (!age14 || (form.birth && under14(form.birth))) { setError('만 14세 이상만 신청할 수 있습니다.'); return; }
     if (!consent) { setError('개인정보 수집·이용에 동의해주세요.'); return; }
     setError('');
     setLoading(true);
@@ -138,7 +142,7 @@ function Join() {
       const res = await fetch('/api/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, consent }),
+        body: JSON.stringify({ ...form, consent, age14 }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -299,10 +303,12 @@ function Join() {
                     />
                   </div>
                 </div>
+                <AgeCheck checked={age14} onChange={setAge14} />
                 <ConsentCheck
                   checked={consent} onChange={setConsent}
                   items="이름, 이메일, 연락처(필수) / 소속 밴드, 역할, 리더 여부, 거주지, 생년월일, 장르, 자기소개(선택)"
-                  purpose="멤버 신청 접수 및 연락"
+                  purpose="멤버 신청 접수, 연락, 커뮤니티(네이버 밴드·카카오톡 오픈채팅) 초대 안내"
+                  retention="멤버 활동 종료 또는 동의 철회 시까지, 합류하지 않은 신청은 접수 후 1년"
                 />
               </>
             )}

@@ -15,6 +15,7 @@ fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 const db = new DatabaseSync(DB_FILE);
 db.exec(`
   PRAGMA journal_mode = WAL;
+  PRAGMA secure_delete = ON; -- 지운 행을 0으로 덮어씀(처리방침 "복구할 수 없게 삭제")
   CREATE TABLE IF NOT EXISTS reservations (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     roomId    INTEGER NOT NULL,
@@ -43,21 +44,46 @@ db.exec(`
     memo      TEXT NOT NULL DEFAULT '',
     createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
   );
+  -- 관리자 접속기록(안전성 확보조치 기준 제8조: 1년 이상 보관). 누가=IP(관리자 계정이 하나뿐), 언제, 무엇을(메서드·경로·결과)
+  CREATE TABLE IF NOT EXISTS admin_log (
+    id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    ip     TEXT NOT NULL,
+    method TEXT NOT NULL,
+    path   TEXT NOT NULL,
+    status INTEGER NOT NULL
+  );
 `);
 // 2026-10-18 추가 열. 기존 DB엔 ALTER로 (CREATE IF NOT EXISTS는 열을 안 늘림)
 if (!db.prepare('PRAGMA table_info(members)').all().some(c => c.name === 'leader'))
   db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
 
+// 보유기간 경과분 자동 파기(개인정보처리방침 3절과 같은 숫자). 합류한 멤버는 활동 종료·철회 때 관리자가 삭제
+function purgeExpired() {
+  const m = db.prepare(`DELETE FROM members WHERE status != '합류' AND createdAt < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 year')`).run();
+  const r = db.prepare(`DELETE FROM reservations WHERE date < date('now', '+9 hours', '-1 year')`).run();
+  db.prepare(`DELETE FROM admin_log WHERE at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-2 years')`).run();
+  if (m.changes || r.changes) console.log(`보유기간 경과 파기: 멤버 신청 ${m.changes}, 예약 ${r.changes}`);
+}
+purgeExpired();
+setInterval(purgeExpired, 24 * 3600 * 1000).unref();
+
 const RESV_STATUS = ['신청', '확정', '취소'];
 const MEMBER_STATUS = ['신청', '연락함', '합류', '보류'];
 const CONSENT_MSG = '개인정보 수집·이용 동의가 필요합니다.';
+// 만 14세 미만은 법정대리인 동의가 필요(개인정보 보호법 제22조의2) → 받지 않음. 폼 체크(age14) + 생년월일로 이중 확인
+const AGE_MSG = '만 14세 이상만 신청할 수 있습니다.';
+const kstToday = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+const under14 = birth => `${Number(birth.slice(0, 4)) + 14}${birth.slice(4)}` > kstToday(); // 14번째 생일 당일부터 허용
 // 합류 안내문 재료. 서버 .env에만 둠(공개 저장소 금지). 관리자가 /admin에서 복사해 문자·카톡으로 직접 보냄 — 사이트는 신청자에게 메일·문자를 보내지 않음
 const INVITE = {
   band: process.env.BAND_INVITE_URL || '',   // 네이버 밴드 초대 링크(가입 승인은 밴드에서)
   chat: process.env.KAKAO_OPEN_URL || '',    // 밴드 리더 오픈채팅 링크
   chatCode: process.env.KAKAO_OPEN_CODE || '', // 오픈채팅 참여코드
 };
-const ROOM_NAMES = {}; // src/data/spaces.js의 rehearsal 이름. 2026-10-17 연습실 미확정(전부 '준비중') → 알림엔 `방 N`. 확정되면 { id: 이름 }
+// 예약을 받는 방 = 여기 있는 id만. .env ROOM_NAMES='{"3":"연습실 A"}' (src/data/spaces.js rehearsal과 맞출 것).
+// 2026-10-17 연습실 미확정 → 비어 있음 → 공개 예약 API는 전부 400 (화면만 막고 API가 열려 있던 구멍)
+const ROOM_NAMES = JSON.parse(process.env.ROOM_NAMES || '{}');
 
 // 신규 신청 텔레그램 알림. 두 env가 없으면 꺼짐. 개인정보는 넣지 않음(텔레그램 서버에 남으므로) → 상세는 /admin에서
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
@@ -73,7 +99,8 @@ function notify(text) {
     .catch(e => console.error('telegram:', e.message));
 }
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const isDate = s => DATE_RE.test(s || '') && !isNaN(new Date(s)); // 2026-99-99 → shiftDate에서 throw 방지
+// 달력에 있는 날짜만. V8은 2010-02-30을 3월 2일로 넘겨버리므로 되돌린 문자열과 비교 (2026-99-99는 Invalid → throw 방지)
+const isDate = s => DATE_RE.test(s || '') && !isNaN(new Date(s)) && new Date(s).toISOString().slice(0, 10) === s;
 const TIME_RE = /^\d{2}:00$/;
 
 // ---------- helpers ----------
@@ -138,15 +165,19 @@ function rateLimit(max, windowMs) {
   };
 }
 
-// ponytail: 세션은 메모리 Set. 서버 재시작 = 전원 로그아웃, 관리자 한두 명이면 그걸로 충분
-const sessions = new Set();
+// ponytail: 세션은 메모리 Map(토큰→마지막 요청 시각). 서버 재시작 = 전원 로그아웃, 관리자 한두 명이면 그걸로 충분
+// 60분 동안 요청이 없으면 만료(안전성 확보조치 기준 제6조④: 일정 시간 업무 처리 없으면 접속 차단)
+const IDLE_MS = 60 * 60 * 1000;
+const sessions = new Map();
 const COOKIE = 'kband_admin';
 function getToken(req) {
   const m = (req.headers.cookie || '').match(new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]+)`));
   return m ? m[1] : null;
 }
 function requireAdmin(req, res, next) {
-  if (sessions.has(getToken(req))) return next();
+  const token = getToken(req), last = sessions.get(token);
+  if (last && Date.now() - last < IDLE_MS) { sessions.set(token, Date.now()); return next(); }
+  sessions.delete(token);
   res.status(401).json({ error: '로그인이 필요합니다.' });
 }
 function safeEqual(a, b) {
@@ -156,6 +187,7 @@ function safeEqual(a, b) {
 
 // ---------- app ----------
 const app = express();
+app.disable('x-powered-by');
 app.set('trust proxy', 1); // Caddy 뒤에서 req.ip가 실제 클라이언트가 되도록
 app.use(express.json({ limit: '32kb' }));
 
@@ -177,7 +209,9 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (!roomId || !date || !startTime || !endTime || !name || !phone)
     return res.status(400).json({ error: '모든 항목을 입력해주세요.' });
+  if (!Object.hasOwn(ROOM_NAMES, roomId)) return res.status(400).json({ error: '예약을 받지 않는 공간입니다.' });
   if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
+  if (req.body.age14 !== true) return res.status(400).json({ error: AGE_MSG });
   if (!isName(name)) return res.status(400).json({ error: NAME_MSG });
   if (!isDate(date) || !TIME_RE.test(startTime) || !TIME_RE.test(endTime) || startTime >= endTime)
     return res.status(400).json({ error: '날짜 또는 시간 형식이 올바르지 않습니다.' });
@@ -188,7 +222,7 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   const r = db.prepare('INSERT INTO reservations (roomId, date, startTime, endTime, name, phone) VALUES (?, ?, ?, ?, ?, ?)')
     .run(parseInt(roomId), date, startTime, endTime, name, phone);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid) });
-  notify(`연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId] || `방 ${roomId}`} · ${date} ${startTime}~${endTime}`);
+  notify(`연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId]} · ${date} ${startTime}~${endTime}`);
 });
 
 // 30회: 공연장 와이파이처럼 한 IP를 여럿이 쓰는 현장 가입 대비. 장난은 이름·이메일 검사와 연락처 중복이 거름
@@ -199,6 +233,9 @@ app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (!f.name || !f.email || !phone) return res.status(400).json({ error: '이름, 이메일, 연락처는 필수 항목입니다.' });
   if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
+  if (req.body.age14 !== true) return res.status(400).json({ error: AGE_MSG });
+  if (f.birth && !isDate(f.birth)) return res.status(400).json({ error: '생년월일 형식이 올바르지 않습니다.' });
+  if (f.birth && under14(f.birth)) return res.status(400).json({ error: AGE_MSG });
   if (!isName(f.name)) return res.status(400).json({ error: NAME_MSG });
   if (!EMAIL_RE.test(f.email)) return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
@@ -214,11 +251,17 @@ app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
 });
 
 // ---------- admin ----------
+// 접속기록: 로그인 시도 포함 /api/admin 요청 전부. 점검은 README "관리자 접속기록"
+app.use('/api/admin', (req, res, next) => {
+  res.on('finish', () => db.prepare('INSERT INTO admin_log (ip, method, path, status) VALUES (?, ?, ?, ?)')
+    .run(req.ip || '', req.method, req.originalUrl.slice(0, 500), res.statusCode));
+  next();
+});
 app.post('/api/admin/login', rateLimit(10, 15 * 60 * 1000), (req, res) => {
   if (!ADMIN_PASSWORD) return res.status(503).json({ error: 'ADMIN_PASSWORD가 설정되지 않았습니다.' });
   if (!safeEqual(req.body.password || '', ADMIN_PASSWORD)) return res.status(401).json({ error: '비밀번호가 틀렸습니다.' });
   const token = crypto.randomBytes(32).toString('hex');
-  sessions.add(token);
+  sessions.set(token, Date.now());
   res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 7 * 24 * 3600 * 1000 });
   res.json({ ok: true });
 });
@@ -285,10 +328,43 @@ app.delete('/api/admin/members/:id', requireAdmin, (req, res) => {
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
+// ---------- 페이지 메타 (src/data/pages.json 한 곳. App.js pageTitle과 같은 규칙) ----------
+// 첫 HTML에 페이지별 <title>·설명·og를 넣어 검색 결과·카톡 미리보기가 페이지마다 다르게. 본문은 여전히 JS가 그림
+const PAGES = require('./src/data/pages.json');
+const SITE = 'https://kband.co.kr';
+const SUFFIX = ' — 음진인 협동조합';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function renderPage(tpl, key) {
+  const p = PAGES[key];
+  const title = !p ? '페이지를 찾을 수 없습니다' + SUFFIX : key === '/' ? p.title : p.title + SUFFIX;
+  const desc = (p || PAGES['/']).desc;
+  const links = Object.entries(PAGES).map(([k, v]) => `<a href="${k}">${esc(v.title)}</a>`).join(' · ');
+  return tpl
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
+    .replace(/(<meta name="description" content=")[^"]*/, `$1${esc(desc)}`)
+    .replace(/(<meta property="og:title" content=")[^"]*/, `$1${esc(title)}`)
+    .replace(/(<meta property="og:description" content=")[^"]*/, `$1${esc(desc)}`)
+    .replace(/(<meta property="og:url" content=")[^"]*/, `$1${SITE}${p ? key : '/'}`)
+    .replace(/<noscript>[\s\S]*?<\/noscript>/,
+      `<noscript><h1>${esc(title)}</h1><p>${esc(desc)}</p><p>전체 내용은 자바스크립트를 켜야 보입니다.</p><nav>${links}</nav></noscript>`);
+}
+
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + Object.keys(PAGES).map(k => `  <url><loc>${SITE}${k}</loc></url>`).join('\n') + '\n</urlset>\n');
+});
+
 // ---------- static (build/가 있을 때만) ----------
 if (fs.existsSync(BUILD_DIR)) {
+  const tpl = fs.readFileSync(path.join(BUILD_DIR, 'index.html'), 'utf8'); // 배포 때 재시작하므로 시작 시 한 번
   app.use(express.static(BUILD_DIR, { maxAge: '1h', index: false }));
-  app.get('/{*splat}', (req, res) => res.sendFile(path.join(BUILD_DIR, 'index.html')));
+  app.get('/{*splat}', (req, res) => {
+    const key = req.path.replace(/\/+$/, '') || '/';
+    if (key === '/admin' || key.startsWith('/admin/'))
+      return res.set('X-Robots-Tag', 'noindex').type('html').send(tpl);
+    // 목록에 없는 주소는 404 상태로(화면은 앱의 NotFound). 검색엔진이 없는 페이지를 색인하지 않게
+    res.status(PAGES[key] ? 200 : 404).type('html').send(renderPage(tpl, key));
+  });
 }
 
 app.listen(PORT, () => {

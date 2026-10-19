@@ -5,6 +5,8 @@ set -euo pipefail
 REPO=https://github.com/Ellencia/eumjinin.git
 APP=/srv/kband
 export DEBIAN_FRONTEND=noninteractive
+# cron 시각(백업 04:20)·로그·백업 파일 날짜를 한국 시간으로. UTC면 04:20이 KST 13:20이 되어 PC 05:00 당김과 어긋남
+timedatectl set-timezone Asia/Seoul
 
 # 외부 저장소(Node 24, Caddy)는 첫 apt 갱신 전에 키까지 등록. 키 없는 목록이 남으면 apt 전체가 멈춤
 install -d /etc/apt/keyrings

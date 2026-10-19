@@ -8,6 +8,8 @@ WorkingDirectory=/srv/kband
 ExecStart=/usr/bin/node --env-file=.env server.js
 Restart=always
 RestartSec=3
+# DB·WAL 파일(개인정보)을 kband 계정만 읽게
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

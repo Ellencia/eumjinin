@@ -1,5 +1,6 @@
-import { useState, createContext } from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { useState, useEffect, createContext } from 'react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import PAGES from './data/pages.json';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import LoadingSplash from './components/LoadingSplash';
@@ -42,8 +43,17 @@ function NotFound() {
   );
 }
 
+// 탭 제목. 서버(server.js pageTitle)도 같은 규칙으로 첫 HTML에 넣음
+function pageTitle(path) {
+  const k = path.replace(/\/+$/, '') || '/';
+  if (!PAGES[k]) return '페이지를 찾을 수 없습니다 — 음진인 협동조합';
+  return k === '/' ? PAGES[k].title : `${PAGES[k].title} — 음진인 협동조합`;
+}
+
 function Site() {
   const [loading, setLoading] = useState(true);
+  const { pathname } = useLocation();
+  useEffect(() => { document.title = pageTitle(pathname); }, [pathname]);
 
   return (
     <SplashContext.Provider value={loading}>

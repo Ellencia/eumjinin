@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import spaces from '../data/spaces';
-import ConsentCheck from '../components/ConsentCheck';
+import ConsentCheck, { AgeCheck } from '../components/ConsentCheck';
 import { AnimatedCheck } from '../components/Icons';
 
 const TIME_SLOTS = [
@@ -74,6 +74,7 @@ function ReservationDetail() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [consent, setConsent] = useState(false);
+  const [age14, setAge14] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [bookedRanges, setBookedRanges] = useState([]);
   const [submitError, setSubmitError] = useState('');
@@ -95,7 +96,7 @@ function ReservationDetail() {
   }, [roomId, selectedDate]);
 
   const duration = getDuration(startTime, endTime);
-  const canSubmit = selectedDate && startTime && endTime && name && isValidPhone(phone) && consent;
+  const canSubmit = selectedDate && startTime && endTime && name && isValidPhone(phone) && consent && age14;
 
   const currentDateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
 
@@ -152,6 +153,7 @@ function ReservationDetail() {
           name,
           phone,
           consent,
+          age14,
         }),
       });
       const data = await res.json();
@@ -293,10 +295,12 @@ function ReservationDetail() {
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                 />
               </div>
+              <AgeCheck checked={age14} onChange={setAge14} />
               <ConsentCheck
                 checked={consent} onChange={setConsent}
-                items="이름, 연락처"
+                items="이름, 연락처, 예약 일시"
                 purpose="연습실 예약 접수 및 연락"
+                retention="이용일부터 1년"
               />
             </div>
 

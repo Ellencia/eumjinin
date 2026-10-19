@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MapIcon } from '../components/Icons';
+import PAGES from '../data/pages.json';
+
+// 'YYYY-MM-DD'(방문자 현지 날짜). 날짜 붙은 일정은 이걸로 "(예정)"·진행 중 여부가 저절로 바뀜
+const today = () => new Date().toLocaleDateString('sv-SE');
 
 /* ── Q&A 데이터 ── */
 const FAQ = [
@@ -12,11 +16,10 @@ const FAQ = [
   { q: 'Art Hall K 대관 문의를 할 수 있나요?', a: '대관 여부는 공간 운영 측에서 결정하며, 음진인은 요청을 전달해 드리는 위치입니다. 희망 일정과 함께 담당자(김인현 010-3099-6929)에게 문의해 주시면 확인 후 연락드립니다.' },
 ];
 
+// 제목·설명(title·desc)은 src/data/pages.json — 서버가 검색·공유 미리보기용 <title>·meta에도 씀
 const pages = {
   '/about/greeting': {
     eyebrow: 'About',
-    title: '인사말',
-    desc: '음악에 진심인 사람들이 모이는 공간, 음진인입니다.',
     lead: '각자의 방에서 혼자 연습하던 시간이 함께 합주하고 무대에 서는 시간으로 이어지도록 — 접근 가능한 공간과 느슨하지만 지속적인 관계를 만들어가고 있습니다.',
     extra: '초보자와 경험자가 자연스럽게 섞이는 열린 커뮤니티를 지향합니다. 레벨을 묻지 않고, 장르를 가리지 않으며, 함께 소리를 만드는 과정 자체를 즐기는 모든 사람을 환영합니다.',
     points: [
@@ -27,8 +30,7 @@ const pages = {
   },
   '/about/history': {
     eyebrow: 'About',
-    title: '연혁',
-    desc: '2021년 밴드 모임 끼놀("끼깔나게 놀자")에서 시작해 2026년 음진인 협동조합으로 이어진 시간입니다.',
+    // 셋째 칸 날짜가 있으면 그날까지 "(예정)"이 붙음
     timeline: [
       ['2021. 12', '밴드 모임 끼놀 시작, 안양 평촌에서 매월 정기 공연 개시'],
       ['2022. 12', '첫 송년 모임'],
@@ -40,14 +42,12 @@ const pages = {
       ['2026. 08', '제2회 횡성 여름 음악 캠프'],
       ['2026. 10. 08', '음진인 협동조합 설립 신고 (고양시)'],
       ['2026. 10. 17', '공식 홈페이지 kband.co.kr 개통'],
-      ['2026. 10. 24', '2026 남이섬 가을 음악 페스티벌 주최·주관 (예정)'],
-      ['2026. 10. 30', '마곡나루 공연 (예정)'],
+      ['2026. 10. 24', '2026 남이섬 가을 음악 페스티벌 주최·주관', '2026-10-24'],
+      ['2026. 10. 30', '마곡나루 공연', '2026-10-30'],
     ],
   },
   '/about/location': {
     eyebrow: 'About',
-    title: '오시는 길',
-    desc: '정기 공연은 Art Hall K에서 열립니다. 연습실은 공간 확정 후 안내드립니다.',
     lead: '공연장 Art Hall K는 행주산성 해찬송학김 건물 지하 1층에 있습니다. 연습실 주소와 교통 안내는 운영지가 확정되는 즉시 업데이트됩니다.',
     location: true,
     points: [
@@ -58,8 +58,6 @@ const pages = {
   },
   '/community/archive': {
     eyebrow: 'Community',
-    title: '자료실',
-    desc: '공연 영상과 자료를 모아 보는 공간입니다.',
     lead: '준비 중입니다. 정기 공연 영상부터 차례로 올라갑니다.',
     points: [
       '공연 포스터 및 현장 사진 아카이브',
@@ -69,8 +67,6 @@ const pages = {
   },
   '/community/board': {
     eyebrow: 'Community',
-    title: '자유게시판',
-    desc: '멤버들이 합주 제안, 공연 모집, 장비 정보를 나눌 수 있는 게시판입니다.',
     lead: '준비 중입니다. 열리기 전까지 합주·공연 모집은 정기 공연 현장에서 안내드립니다.',
     points: [
       '합주·공연 멤버 모집',
@@ -80,14 +76,10 @@ const pages = {
   },
   '/community/qna': {
     eyebrow: 'Community',
-    title: 'Q&A',
-    desc: '공간 이용, 예약, 멤버 신청에 대한 자주 묻는 질문을 정리했습니다.',
     faq: true,
   },
   '/projects/overview': {
     eyebrow: 'Projects',
-    title: '프로젝트 연혁',
-    desc: '음진인에서 진행한 공연, 합주, 창작 프로젝트를 기록하는 공간입니다.',
     timeline: [
       ['매월', 'Art Hall K 정기 공연'],
       ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최'],
@@ -95,12 +87,11 @@ const pages = {
   },
   '/projects/ongoing': {
     eyebrow: 'Projects',
-    title: '진행 중 프로젝트',
-    desc: '현재 진행 중이거나 확정된 공연입니다.',
+    // [문구, 마지막 날]. 그날이 지나면 목록에서 빠짐(연혁에는 남음)
     points: [
-      '매월 Art Hall K 정기 공연',
-      '2026. 10. 24 2026 남이섬 가을 음악 페스티벌 (주최·주관, 남이섬 야외공연장 13~16시, 10팀, 무료 관람)',
-      '2026. 10. 30 마곡나루 공연',
+      ['매월 Art Hall K 정기 공연'],
+      ['2026. 10. 24 2026 남이섬 가을 음악 페스티벌 (주최·주관, 남이섬 야외공연장 13~16시, 10팀, 무료 관람)', '2026-10-24'],
+      ['2026. 10. 30 마곡나루 공연', '2026-10-30'],
     ],
   },
 };
@@ -156,7 +147,12 @@ function LocationBlock() {
 
 function InfoPage() {
   const location = useLocation();
-  const page = pages[location.pathname] || pages['/about/greeting'];
+  const path = pages[location.pathname] ? location.pathname : '/about/greeting';
+  const page = { ...PAGES[path], ...pages[path] };
+  const now = today();
+  const points = page.points
+    ?.map((p) => (typeof p === 'string' ? [p] : p))
+    .filter(([, until]) => !until || until >= now);
 
   return (
     <section className="info-page">
@@ -172,9 +168,9 @@ function InfoPage() {
         {page.faq && <FaqAccordion />}
         {page.location && <LocationBlock />}
 
-        {page.points && (
+        {points && (
           <div className="info-grid">
-            {page.points.map((point) => (
+            {points.map(([point]) => (
               <article className="info-card" key={point}>
                 <span className="info-card-mark" />
                 <p>{point}</p>
@@ -185,10 +181,10 @@ function InfoPage() {
 
         {page.timeline && (
           <div className="timeline-list">
-            {page.timeline.map(([time, text]) => (
+            {page.timeline.map(([time, text, date]) => (
               <article className="timeline-item" key={time}>
                 <strong>{time}</strong>
-                <p>{text}</p>
+                <p>{text}{date >= now && ' (예정)'}</p>
               </article>
             ))}
           </div>
