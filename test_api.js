@@ -49,7 +49,6 @@ async function main() {
   assert.ok(!('phone' in r.data[0]) && !('name' in r.data[0]), '공개 조회에 개인정보 없음');
 
   // 공개 멤버
-  // 멤버 신청은 IP당 시간당 10회 → 아래 합계 9회로 맞춤
   for (const name of ["''", 'ㅋㅋ', '123'])
     assert.equal((await req('POST', '/api/members', { name, email: 'a@gmail.com', phone: '010-7777-0000', consent: true })).status, 400, `이름 거부: ${name}`);
   for (const email of ['2345@1.com', 'a@asdfqwer1234zz.com', 'abc'])

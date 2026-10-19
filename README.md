@@ -24,7 +24,7 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 ## 경로
 
 - `/` 공개 사이트, `/admin` 관리자(예약·멤버 신청 목록, 상태·메모, 삭제)
-- `POST /api/reservations`, `POST /api/members` 공개 신청 (IP당 시간당 20·10회 제한)
+- `POST /api/reservations`, `POST /api/members` 공개 신청 (IP당 시간당 20·30회 제한)
 - `/api/admin/*` 쿠키 세션. 서버 재시작 시 전원 로그아웃
 
 ## 환경 변수 (.env)

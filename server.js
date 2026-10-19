@@ -191,7 +191,8 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   notify(`연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId] || `방 ${roomId}`} · ${date} ${startTime}~${endTime}`);
 });
 
-app.post('/api/members', rateLimit(10, 60 * 60 * 1000), async (req, res) => {
+// 30회: 공연장 와이파이처럼 한 IP를 여럿이 쓰는 현장 가입 대비. 장난은 이름·이메일 검사와 연락처 중복이 거름
+app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
   const f = {};
   for (const k of ['name', 'email', 'band', 'role', 'location', 'birth', 'genre', 'intro'])
     f[k] = String(req.body[k] || '').trim().slice(0, k === 'intro' ? 2000 : 100); // 폼은 select/input이지만 API 직접 호출 대비
