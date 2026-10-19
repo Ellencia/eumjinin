@@ -2,11 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import stage1 from '../assets/stage1.webp';
 import stage2 from '../assets/stage2.webp';
 import stage3 from '../assets/stage3.webp';
+import stage4 from '../assets/stage4.webp';
 
 export const SLIDES = [
   { type: 'image', src: stage1 },
   { type: 'image', src: stage2 },
   { type: 'image', src: stage3 },
+  { type: 'image', src: stage4 },
 ];
 
 const IMAGE_DURATION = 5000;
