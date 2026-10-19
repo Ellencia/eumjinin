@@ -49,10 +49,17 @@ async function main() {
   assert.ok(!('phone' in r.data[0]) && !('name' in r.data[0]), '공개 조회에 개인정보 없음');
 
   // 공개 멤버
-  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@b.co', phone: '010-9999-8888', band: '밴드', leader: true, consent: true });
+  // 멤버 신청은 IP당 시간당 10회 → 아래 합계 9회로 맞춤
+  for (const name of ["''", 'ㅋㅋ', '123'])
+    assert.equal((await req('POST', '/api/members', { name, email: 'a@gmail.com', phone: '010-7777-0000', consent: true })).status, 400, `이름 거부: ${name}`);
+  for (const email of ['2345@1.com', 'a@asdfqwer1234zz.com', 'abc'])
+    assert.equal((await req('POST', '/api/members', { name: '홍길동', email, phone: '010-7777-0000', consent: true })).status, 400, `이메일 거부: ${email}`);
+  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@gmail.com', phone: '010-9999-8888', band: '밴드', leader: true, consent: true });
   assert.equal(r.status, 201, '멤버 생성');
   const memId = r.data.id;
-  r = await req('POST', '/api/members', { name: '홍길동2', email: 'a@b.co', phone: '01099998888', consent: true });
+  r = await req('POST', '/api/members', { name: "Mary O'Brien", email: 'm@naver.com', phone: '010-9999-7777', consent: true });
+  assert.equal(r.status, 201, '영문 이름·아포스트로피 허용');
+  r = await req('POST', '/api/members', { name: '홍길순', email: 'a@gmail.com', phone: '01099998888', consent: true });
   assert.equal(r.status, 409, '연락처 중복');
 
   // 관리자 인증

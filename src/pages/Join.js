@@ -13,7 +13,9 @@ function getFieldError(name, value) {
   switch (name) {
     case 'name':
       if (!value.trim()) return '이름을 입력해주세요.';
-      if (value.trim().length < 2) return '이름은 2자 이상이어야 합니다.';
+      // server.js isName과 같은 규칙
+      if (!/^\p{L}[\p{L}\s.'·-]*$/u.test(value.trim()) || /[ㄱ-ㆎ]/.test(value)
+        || value.match(/\p{L}/gu).length < 2) return '이름을 정확히 입력해주세요.';
       return '';
     case 'email':
       if (!value.trim()) return '이메일을 입력해주세요.';

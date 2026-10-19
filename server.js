@@ -84,6 +84,23 @@ function normalizePhone(raw) {
     : `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
 }
 const PHONE_RE = /^\d{2,3}-\d{3,4}-\d{4}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/; // Join.js와 같은 식
+const NAME_MSG = '이름을 정확히 입력해주세요.';
+// 글자(한글·영문 등)로 시작, 글자·공백·. ' · - 만, 글자 2자 이상. 자모만(ㅋㅋ)은 거부
+function isName(s) {
+  if (!/^\p{L}[\p{L}\s.'·-]*$/u.test(s) || /[ㄱ-ㆎ]/.test(s)) return false;
+  return s.match(/\p{L}/gu).length >= 2;
+}
+// 메일 받을 서버(MX)가 없는 도메인 거부. DNS 장애·시간초과는 통과시킴(신청을 막는 쪽이 더 손해)
+const mxResolver = new (require('dns').promises.Resolver)({ timeout: 3000, tries: 1 });
+async function hasMailServer(email) {
+  try {
+    const mx = await mxResolver.resolveMx(email.split('@')[1]);
+    return mx.some(r => r.exchange); // exchange '' = "메일 안 받음" 선언(null MX)
+  } catch (e) {
+    return !['ENOTFOUND', 'ENODATA'].includes(e.code);
+  }
+}
 
 // 날짜 + 시간을 절대 분(minute)으로 변환 — 자정 경계(24:00~29:00) 비교에 사용
 function toAbsMins(date, timeStr) {
@@ -161,6 +178,7 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   if (!roomId || !date || !startTime || !endTime || !name || !phone)
     return res.status(400).json({ error: '모든 항목을 입력해주세요.' });
   if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
+  if (!isName(name)) return res.status(400).json({ error: NAME_MSG });
   if (!isDate(date) || !TIME_RE.test(startTime) || !TIME_RE.test(endTime) || startTime >= endTime)
     return res.status(400).json({ error: '날짜 또는 시간 형식이 올바르지 않습니다.' });
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
@@ -173,14 +191,18 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   notify(`연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId] || `방 ${roomId}`} · ${date} ${startTime}~${endTime}`);
 });
 
-app.post('/api/members', rateLimit(10, 60 * 60 * 1000), (req, res) => {
+app.post('/api/members', rateLimit(10, 60 * 60 * 1000), async (req, res) => {
   const f = {};
   for (const k of ['name', 'email', 'band', 'role', 'location', 'birth', 'genre', 'intro'])
     f[k] = String(req.body[k] || '').trim().slice(0, k === 'intro' ? 2000 : 100); // 폼은 select/input이지만 API 직접 호출 대비
   const phone = normalizePhone(req.body.phone);
   if (!f.name || !f.email || !phone) return res.status(400).json({ error: '이름, 이메일, 연락처는 필수 항목입니다.' });
   if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
+  if (!isName(f.name)) return res.status(400).json({ error: NAME_MSG });
+  if (!EMAIL_RE.test(f.email)) return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' });
+  if (!await hasMailServer(f.email)) return res.status(400).json({ error: '메일을 받을 수 없는 이메일 주소입니다. 주소를 확인해주세요.' });
+  // 중복 검사는 await 뒤에: 기다리는 사이 같은 번호가 먼저 들어올 수 있음
   if (db.prepare('SELECT 1 FROM members WHERE phone = ?').get(phone))
     return res.status(409).json({ error: '이미 같은 연락처로 신청된 내역이 있습니다.' });
   const leader = req.body.leader === true ? 1 : 0;
