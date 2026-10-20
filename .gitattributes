@@ -1,2 +1,4 @@
 # 서버에서 실행되는 스크립트는 Windows 체크아웃에서도 LF 유지
 deploy/** text eol=lf
+# cmd는 LF 전용 + 한글(UTF-8) 줄을 어긋나게 읽음 → .bat은 CRLF
+*.bat text eol=crlf
