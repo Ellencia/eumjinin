@@ -55,6 +55,8 @@ async function main() {
     assert.equal((await req('POST', '/api/members', { name, email: 'a@gmail.com', phone: '010-7777-0000', consent: true, age14: true })).status, 400, `이름 거부: ${name}`);
   for (const email of ['2345@1.com', 'a@asdfqwer1234zz.com', 'abc'])
     assert.equal((await req('POST', '/api/members', { name: '홍길동', email, phone: '010-7777-0000', consent: true, age14: true })).status, 400, `이메일 거부: ${email}`);
+  assert.equal((await req('GET', '/api/mx?domain=1.com')).data.ok, false, '1단계 MX 사전 확인: 메일 서버 없는 도메인');
+  assert.equal((await req('GET', '/api/mx?domain=gmail.com')).data.ok, true, '1단계 MX 사전 확인: gmail');
   r = await req('POST', '/api/members', { name: '홍길동', email: 'a@gmail.com', phone: '010-9999-8888', band: '밴드', leader: true, consent: true, age14: true });
   assert.equal(r.status, 201, '멤버 생성');
   const memId = r.data.id;

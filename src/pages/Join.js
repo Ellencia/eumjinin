@@ -132,6 +132,11 @@ function Join() {
       // 필수 필드 전부 touched로 표시해서 에러 노출
       setTouched((prev) => Object.fromEntries([...REQUIRED.map(f => [f, true]), ...Object.entries(prev)]));
       if (REQUIRED.some(f => getFieldError(f, form[f]))) return;
+      // 형식은 맞아도 메일 서버 없는 도메인(1@1.com 등)은 서버만 앎. 연결 실패면 통과(마지막에 서버가 다시 봄)
+      setLoading(true);
+      const ok = await fetch('/api/mx?domain=' + encodeURIComponent(form.email.split('@')[1]))
+        .then(r => r.json()).then(d => d.ok !== false, () => true).finally(() => setLoading(false));
+      if (!ok) { setError('메일을 받을 수 없는 이메일 주소입니다. 주소를 확인해주세요.'); return; }
     }
     if (step < STEPS.length - 1) { goTo(step + 1); return; }
     if (!age14 || (form.birth && under14(form.birth))) { setError('만 14세 이상만 신청할 수 있습니다.'); return; }
@@ -149,7 +154,7 @@ function Join() {
         setError(data.error || '신청 중 오류가 발생했습니다.');
         return;
       }
-      setSubmitted(true);
+      setSubmitted({ band: data.band || '' });
     } catch {
       setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
     } finally {
@@ -165,7 +170,13 @@ function Join() {
           <div className="join-success">
             <AnimatedCheck />
             <h2>신청이 완료됐어요!</h2>
-            <p>{form.name}님, 신청이 접수되었습니다.<br />담당자가 확인 후 연락드릴게요.</p>
+            <p>{form.name}님, 신청이 접수되었습니다.<br />
+              {submitted.band ? '아래 밴드에 가입 신청해 주시면 운영진이 확인 후 승인해 드려요.' : '담당자가 확인 후 연락드릴게요.'}
+              {form.leader && <><br />밴드 리더 단톡방은 담당자가 따로 안내드릴게요.</>}
+            </p>
+            {submitted.band && (
+              <a className="join-next" href={submitted.band} target="_blank" rel="noopener noreferrer">네이버 밴드 가입 신청</a>
+            )}
             <button className="join-next" onClick={() => { setSubmitted(false); setStep(0); }}>
               돌아가기
             </button>

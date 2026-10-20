@@ -226,6 +226,10 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
 });
 
 // 30회: 공연장 와이파이처럼 한 IP를 여럿이 쓰는 현장 가입 대비. 장난은 이름·이메일 검사와 연락처 중복이 거름
+// 신청서 1단계 "다음"에서 메일 도메인만 미리 확인(주소 앞부분은 안 받음). 최종 판정은 아래 POST가 다시 함
+app.get('/api/mx', rateLimit(60, 60 * 60 * 1000), async (req, res) =>
+  res.json({ ok: await hasMailServer('@' + String(req.query.domain || '').slice(0, 253)) }));
+
 app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
   const f = {};
   for (const k of ['name', 'email', 'band', 'role', 'location', 'birth', 'genre', 'intro'])
@@ -246,7 +250,7 @@ app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
   const leader = req.body.leader === true ? 1 : 0;
   const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro, leader)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro, leader);
-  res.status(201).json({ success: true, id: Number(r.lastInsertRowid) });
+  res.status(201).json({ success: true, id: Number(r.lastInsertRowid), band: INVITE.band }); // 완료 화면의 밴드 가입 링크(승인은 밴드에서)
   notify(`멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'}${leader ? ' · 밴드 리더' : ''})`);
 });
 

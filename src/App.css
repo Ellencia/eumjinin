@@ -1012,6 +1012,7 @@ main { padding-top: 64px; }
 }
 .join-success h2 { font-family: 'Hahmlet', serif; font-size: 40px; font-weight: 700; }
 .join-success p { color: #A3A1A8; line-height: 1.7; }
+.join-success a.join-next { text-decoration: none; }
 
 /* 완료 체크 애니메이션: 원이 튀어 들어오고(0~0.5s) 체크가 그려짐(0.3~0.65s), 바깥 링은 퍼지며 사라짐 */
 .check-anim { display: block; width: 96px; height: 96px; margin: 0 auto 20px; overflow: visible; }
