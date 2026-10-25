@@ -37,6 +37,7 @@ const YOUTH = {
     { href: 'https://n.news.naver.com/article/008/0005406534', title: '[사진] 2026 제19회 머니투데이도전청춘가요제, 본선 개막 선포', source: '머니투데이', date: '2026. 08. 29', image: require('../assets/youth-news4.webp') },
   ],
   // 사진은 사용자 업로드 예정 → src/assets/youthNN.webp 들어오면 photos: photoSet(require.context('../assets', true, /youth\d+\.webp$/))
+  dates: ['2026-06-20', '2026-07-18', '2026-08-29'], // 공연 일정의 예선·본선 세 건이 이 항목으로 링크됨
 };
 
 // 프로젝트 연혁(/projects/overview) 항목. 5번째 칸 slug가 앵커(#slug)가 되고, 소개 연혁·공연 일정은 그리로 링크
@@ -47,9 +48,9 @@ const PROJECT_TIMELINE = [
   ['2026. 10. 24', NAMI_TEXT, '2026-10-24', NAMI, 'nami2026'],
   ['2026. 10. 30', '마곡나루 공연', '2026-10-30', undefined, 'magok2026'],
 ];
-// 공연 일정(Schedule.js)이 공연 날짜로 찾는 링크표 { 'YYYY-MM-DD': '/projects/overview#slug' }
+// 공연 일정(Schedule.js)이 공연 날짜로 찾는 링크표 { 'YYYY-MM-DD': '/projects/overview#slug' }. 여러 날짜 행사는 extra.dates
 export const PROJECT_LINKS = Object.fromEntries(
-  PROJECT_TIMELINE.filter(([, , date, , slug]) => date && slug).map(([, , date, , slug]) => [date, `/projects/overview#${slug}`]),
+  PROJECT_TIMELINE.flatMap(([, , date, extra, slug]) => (slug ? (extra?.dates || (date ? [date] : [])).map((d) => [d, `/projects/overview#${slug}`]) : [])),
 );
 
 /* ── Q&A 데이터 ── */
