@@ -14,7 +14,13 @@ const photoSet = (ctx) => {
   return set;
 };
 const NAMI = {
-  link: ['머니투데이 기사', 'https://n.news.naver.com/article/008/0005431254'],
+  // 기사 카드. image는 기사 og:image를 320px로 줄인 것(외부 요청 0 유지)
+  link: {
+    href: 'https://n.news.naver.com/article/008/0005431254',
+    title: "'2026 남이섬 가을 음악 페스티벌' 성황...록밴드 '무모한사람들' 대상",
+    source: '머니투데이', date: '2026. 10. 25',
+    image: require('../assets/nami-news.webp'),
+  },
   photos: photoSet(require.context('../assets', true, /nami\d+\.webp$/)),
 };
 
@@ -126,15 +132,31 @@ function FaqAccordion() {
   );
 }
 
-// 연혁 항목 밑 썸네일 줄. 누르면 SpaceDetail의 라이트박스로 원본
-function TimelinePhotos({ images, label }) {
+// 기사 링크 미리보기 카드(썸네일·제목·출처)
+function NewsCard({ link }) {
+  return (
+    <a className="news-card" href={link.href} target="_blank" rel="noopener noreferrer">
+      <img src={link.image} alt="" loading="lazy" />
+      <span>
+        <span className="news-card-title">{link.title}</span>
+        <span className="news-card-meta">{link.source} · {link.date} · 기사 보기 ↗</span>
+      </span>
+    </a>
+  );
+}
+
+// 앨범: 표지 한 장 크게 + 작은 4장, 마지막 칸에 "+n". 누르면 SpaceDetail의 라이트박스로 전부
+const ALBUM_SHOW = 5;
+function Album({ images, label }) {
   const [idx, setIdx] = useState(null);
+  const hidden = images.thumb.length - ALBUM_SHOW;
   return (
     <>
-      <div className="timeline-photos">
-        {images.thumb.map((src, k) => (
-          <button key={k} type="button" aria-label={`${label} 사진 ${k + 1} 크게 보기`} onClick={() => setIdx(k)}>
+      <div className="album">
+        {images.thumb.slice(0, ALBUM_SHOW).map((src, k) => (
+          <button key={k} type="button" className={k === 0 ? 'album-cover' : undefined} aria-label={`${label} 사진 ${k + 1} 크게 보기`} onClick={() => setIdx(k)}>
             <img src={src} alt="" loading="lazy" />
+            {k === ALBUM_SHOW - 1 && hidden > 0 && <span className="album-more">+{hidden}</span>}
           </button>
         ))}
       </div>
@@ -212,11 +234,9 @@ function InfoPage() {
               <article className="timeline-item" key={time}>
                 <strong>{time}</strong>
                 <div>
-                  <p>
-                    {text}{date >= now && ' (예정)'}
-                    {extra?.link && <> · <a href={extra.link[1]} target="_blank" rel="noopener noreferrer" className="timeline-link">{extra.link[0]}</a></>}
-                  </p>
-                  {extra?.photos && <TimelinePhotos images={extra.photos} label={text} />}
+                  <p>{text}{date >= now && ' (예정)'}</p>
+                  {extra?.link && <NewsCard link={extra.link} />}
+                  {extra?.photos && <Album images={extra.photos} label={text} />}
                 </div>
               </article>
             ))}
