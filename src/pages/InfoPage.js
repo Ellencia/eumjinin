@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { MapIcon } from '../components/Icons';
 import { Lightbox } from './SpaceDetail';
 import PAGES from '../data/pages.json';
+import spaces from '../data/spaces';
 
 // 'YYYY-MM-DD'(방문자 현지 날짜). 날짜 붙은 일정은 이걸로 "(예정)"·진행 중 여부가 저절로 바뀜
 const today = () => new Date().toLocaleDateString('sv-SE');
@@ -174,25 +175,33 @@ function Album({ images, label }) {
   );
 }
 
+// 지도 임베드는 네이버 지도 API 키+외부 스크립트가 필요해서(외부 요청 0 원칙) 링크 카드로. 주소·지도 URL은 spaces.js의 Art Hall K가 단일 출처
+const hall = spaces.find((s) => s.id === 6);
 function LocationBlock() {
   return (
     <div className="location-block">
-      <div className="location-map-placeholder">
-        <span><MapIcon /></span>
-        <p>지도는 연습실 확정 후 함께 표시됩니다</p>
-      </div>
+      <a className="location-map" href={hall.mapUrl} target="_blank" rel="noopener noreferrer">
+        <span className="location-map-icon"><MapIcon /></span>
+        <strong>Art Hall K</strong>
+        <p>{hall.location}</p>
+        <span className="location-map-cta">네이버 지도에서 열기 ↗</span>
+      </a>
       <div className="location-info">
         <div className="location-row">
           <strong>공연장</strong>
-          <span>Art Hall K — 경기도 고양시 덕양구 행주산성로 38, 해찬송학김 B1</span>
+          <span>Art Hall K — {hall.location}</span>
+        </div>
+        <div className="location-row">
+          <strong>주차</strong>
+          <span>건물 주차장 이용 가능 (약 60–70대)</span>
+        </div>
+        <div className="location-row">
+          <strong>대중교통</strong>
+          <span>확인 후 안내</span>
         </div>
         <div className="location-row">
           <strong>연습실</strong>
           <span>운영지 확정 후 공개 예정</span>
-        </div>
-        <div className="location-row">
-          <strong>대중교통·주차</strong>
-          <span>확정 후 안내</span>
         </div>
         <div className="location-row">
           <strong>입장</strong>
