@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MapIcon } from '../components/Icons';
 import { Lightbox } from './SpaceDetail';
@@ -7,6 +7,11 @@ import spaces from '../data/spaces';
 
 // 'YYYY-MM-DD'(방문자 현지 날짜). 날짜 붙은 일정은 이걸로 "(예정)"·진행 중 여부가 저절로 바뀜
 const today = () => new Date().toLocaleDateString('sv-SE');
+
+// 문장 끝(마침표 뒤 공백)마다 줄바꿈. "2026. 10. 24" 같은 날짜의 점은 숫자가 따라와서 안 끊김
+const lines = (text) => text.split(/\.\s+(?=[^\d\s])/).map((s, i, arr) => (
+  <Fragment key={i}>{s}{i < arr.length - 1 && <>.<br /></>}</Fragment>
+));
 
 // 연혁 사진: src/assets/namiNN.webp(원본) + thumbs/(make_thumbs.py). 파일만 추가하면 번호순으로 들어감
 const photoSet = (ctx) => {
@@ -198,7 +203,7 @@ function LocationBlock() {
         <div className="location-row">
           <strong>대중교통</strong>
           {/* 네이버 지도 길찾기 기준(2026-10). 가장 가까운 정류장은 행주초등학교(마을버스 011) */}
-          <span>경의중앙선 능곡역에서 마을버스 011 → 행주초등학교 하차, 도보 1분. 직행 1082·광역 9707은 맨돌 하차 후 도보 8분</span>
+          <span>{lines('경의중앙선 능곡역에서 마을버스 011 → 행주초등학교 하차, 도보 1분. 직행 1082·광역 9707은 맨돌 하차 후 도보 8분')}</span>
         </div>
         <div className="location-row">
           <strong>연습실</strong>
@@ -229,10 +234,10 @@ function InfoPage() {
         <Link to="/" className="back-link">← 홈으로</Link>
         <p className="page-eyebrow">{page.eyebrow}</p>
         <h1 className="section-title">{page.title}</h1>
-        <p className="section-sub">{page.desc}</p>
+        <p className="section-sub">{lines(page.desc)}</p>
 
-        {page.lead && <p className="info-lead">{page.lead}</p>}
-        {page.extra && <p className="info-lead" style={{ marginTop: 16 }}>{page.extra}</p>}
+        {page.lead && <p className="info-lead">{lines(page.lead)}</p>}
+        {page.extra && <p className="info-lead" style={{ marginTop: 16 }}>{lines(page.extra)}</p>}
 
         {page.faq && <FaqAccordion />}
         {page.location && <LocationBlock />}
