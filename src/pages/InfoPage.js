@@ -19,22 +19,31 @@ const photoSet = (ctx) => {
   ctx.keys().sort().forEach((k) => (k.includes('/thumbs/') ? set.thumb : set.full).push(ctx(k)));
   return set;
 };
+// 기사 카드. image는 기사 og:image를 320px로 줄인 것(외부 요청 0 유지)
 const NAMI = {
-  // 기사 카드. image는 기사 og:image를 320px로 줄인 것(외부 요청 0 유지)
-  link: {
+  links: [{
     href: 'https://n.news.naver.com/article/008/0005431254',
     title: "'2026 남이섬 가을 음악 페스티벌' 성황...록밴드 '무모한사람들' 대상",
     source: '머니투데이', date: '2026. 10. 25',
     image: require('../assets/nami-news.webp'),
-  },
+  }],
   photos: photoSet(require.context('../assets', true, /nami\d+\.webp$/)),
+};
+const YOUTH = {
+  links: [
+    { href: 'https://www.mt.co.kr/future/2026/08/31/2026083013091577876', title: "열정으로 물든 행주산성 '제19회 머니투데이도전청춘가요제' 성료", source: '머니투데이', date: '2026. 08. 31', image: require('../assets/youth-news1.webp') },
+    { href: 'https://www.mt.co.kr/industry/2026/08/31/2026082820231537421', title: "'2026 제19회 머니투데이도전청춘가요제' 수상팀 촌평", source: '머니투데이', date: '2026. 08. 31', image: require('../assets/youth-news2.webp') },
+    { href: 'https://www.mt.co.kr/industry/2026/08/31/2026083111275425116', title: "[인터뷰] '찐친' 우정이 쏘아 올린 머니투데이 도전청춘가요제 '공동대상'", source: '머니투데이', date: '2026. 08. 31', image: require('../assets/youth-news3.webp') },
+    { href: 'https://n.news.naver.com/article/008/0005406534', title: '[사진] 2026 제19회 머니투데이도전청춘가요제, 본선 개막 선포', source: '머니투데이', date: '2026. 08. 29', image: require('../assets/youth-news4.webp') },
+  ],
+  // 사진은 사용자 업로드 예정 → src/assets/youthNN.webp 들어오면 photos: photoSet(require.context('../assets', true, /youth\d+\.webp$/))
 };
 
 // 프로젝트 연혁(/projects/overview) 항목. 5번째 칸 slug가 앵커(#slug)가 되고, 소개 연혁·공연 일정은 그리로 링크
 const NAMI_TEXT = '2026 남이섬 가을 음악 페스티벌 주최 (남이섬 에코스테이지, 10팀 경연 · 대상 무모한사람들)';
 const PROJECT_TIMELINE = [
   ['매월', 'Art Hall K 정기 공연'],
-  ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최 (6.20 / 7.18 / 8.29)', undefined, undefined, 'youth2026'],
+  ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최 (6.20 / 7.18 / 8.29)', undefined, YOUTH, 'youth2026'],
   ['2026. 10. 24', NAMI_TEXT, '2026-10-24', NAMI, 'nami2026'],
   ['2026. 10. 30', '마곡나루 공연', '2026-10-30', undefined, 'magok2026'],
 ];
@@ -72,7 +81,7 @@ const pages = {
       ['2024. 10 ~', '자선 공연·위문 공연 정례화 (병원, 수녀회, 무료급식소 등)'],
       ['2025. 07', '제1회 횡성 여름 음악 캠프'],
       ['2026. 01. 24', '행주산성 Art Hall K로 거점 이전, 첫 공연 (이후 매월 정기 모임 공연)'],
-      ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최 (6.20 / 7.18 / 8.29)', undefined, undefined, 'youth2026'],
+      ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최 (6.20 / 7.18 / 8.29)', undefined, YOUTH, 'youth2026'],
       ['2026. 08', '제2회 횡성 여름 음악 캠프'],
       ['2026. 10. 08', '음진인 협동조합 설립 신고 (고양시)'],
       ['2026. 10. 17', '공식 홈페이지 kband.co.kr 개통'],
@@ -263,7 +272,7 @@ function InfoPage() {
                     {slug && !isOverview ? <Link to={`/projects/overview#${slug}`} className="timeline-link">{text}</Link> : text}
                     {date >= now && ' (예정)'}
                   </p>
-                  {extra?.link && <NewsCard link={extra.link} />}
+                  {extra?.links?.map((l) => <NewsCard key={l.href} link={l} />)}
                   {extra?.photos && <Album images={extra.photos} label={text} />}
                 </div>
               </article>
