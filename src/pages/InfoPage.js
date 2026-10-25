@@ -24,6 +24,19 @@ const NAMI = {
   photos: photoSet(require.context('../assets', true, /nami\d+\.webp$/)),
 };
 
+// 프로젝트 연혁(/projects/overview) 항목. 5번째 칸 slug가 앵커(#slug)가 되고, 소개 연혁·공연 일정은 그리로 링크
+const NAMI_TEXT = '2026 남이섬 가을 음악 페스티벌 주최 (남이섬 에코스테이지, 10팀 경연 · 대상 무모한사람들)';
+const PROJECT_TIMELINE = [
+  ['매월', 'Art Hall K 정기 공연'],
+  ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최 (6.20 / 7.18 / 8.29)', undefined, undefined, 'youth2026'],
+  ['2026. 10. 24', NAMI_TEXT, '2026-10-24', NAMI, 'nami2026'],
+  ['2026. 10. 30', '마곡나루 공연', '2026-10-30', undefined, 'magok2026'],
+];
+// 공연 일정(Schedule.js)이 공연 날짜로 찾는 링크표 { 'YYYY-MM-DD': '/projects/overview#slug' }
+export const PROJECT_LINKS = Object.fromEntries(
+  PROJECT_TIMELINE.filter(([, , date, , slug]) => date && slug).map(([, , date, , slug]) => [date, `/projects/overview#${slug}`]),
+);
+
 /* ── Q&A 데이터 ── */
 // 예약·연습실·장비 항목은 연습실 확정 때까지 뺌(10-25)
 const FAQ = [
@@ -53,12 +66,12 @@ const pages = {
       ['2024. 10 ~', '자선 공연·위문 공연 정례화 (병원, 수녀회, 무료급식소 등)'],
       ['2025. 07', '제1회 횡성 여름 음악 캠프'],
       ['2026. 01. 24', '행주산성 Art Hall K로 거점 이전, 첫 공연 (이후 매월 정기 모임 공연)'],
-      ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최 (6.20 / 7.18 / 8.29)'],
+      ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최 (6.20 / 7.18 / 8.29)', undefined, undefined, 'youth2026'],
       ['2026. 08', '제2회 횡성 여름 음악 캠프'],
       ['2026. 10. 08', '음진인 협동조합 설립 신고 (고양시)'],
       ['2026. 10. 17', '공식 홈페이지 kband.co.kr 개통'],
-      ['2026. 10. 24', '2026 남이섬 가을 음악 페스티벌 주최 (남이섬 에코스테이지, 10팀 경연 · 대상 무모한사람들)', '2026-10-24', NAMI],
-      ['2026. 10. 30', '마곡나루 공연', '2026-10-30'],
+      ['2026. 10. 24', NAMI_TEXT, '2026-10-24', NAMI, 'nami2026'],
+      ['2026. 10. 30', '마곡나루 공연', '2026-10-30', undefined, 'magok2026'],
     ],
   },
   '/about/location': {
@@ -95,11 +108,7 @@ const pages = {
   },
   '/projects/overview': {
     eyebrow: 'Projects',
-    timeline: [
-      ['매월', 'Art Hall K 정기 공연'],
-      ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최'],
-      ['2026. 10. 24', '2026 남이섬 가을 음악 페스티벌 주최 (남이섬 에코스테이지, 10팀 경연 · 대상 무모한사람들)', '2026-10-24', NAMI],
-    ],
+    timeline: PROJECT_TIMELINE,
   },
   '/projects/ongoing': {
     eyebrow: 'Projects',
@@ -198,6 +207,7 @@ function InfoPage() {
   const location = useLocation();
   const path = pages[location.pathname] ? location.pathname : '/about/greeting';
   const page = { ...PAGES[path], ...pages[path] };
+  const isOverview = path === '/projects/overview'; // 여기선 slug가 앵커, 다른 페이지에선 이리로 오는 링크
   const now = today();
   const points = page.points
     ?.map((p) => (typeof p === 'string' ? [p] : p))
@@ -230,11 +240,14 @@ function InfoPage() {
 
         {page.timeline && (
           <div className="timeline-list">
-            {page.timeline.map(([time, text, date, extra]) => (
-              <article className="timeline-item" key={time}>
+            {page.timeline.map(([time, text, date, extra, slug]) => (
+              <article className="timeline-item" key={time} id={isOverview ? slug : undefined}>
                 <strong>{time}</strong>
                 <div>
-                  <p>{text}{date >= now && ' (예정)'}</p>
+                  <p>
+                    {slug && !isOverview ? <Link to={`/projects/overview#${slug}`} className="timeline-link">{text}</Link> : text}
+                    {date >= now && ' (예정)'}
+                  </p>
                   {extra?.link && <NewsCard link={extra.link} />}
                   {extra?.photos && <Album images={extra.photos} label={text} />}
                 </div>

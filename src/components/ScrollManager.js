@@ -14,7 +14,10 @@ function ScrollManager() {
 
   useEffect(() => {
     const saved = positions[location.key];
-    if (saved !== undefined) {
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target) {
+      target.scrollIntoView(); // 상단바 여백은 CSS scroll-margin-top
+    } else if (saved !== undefined) {
       window.scrollTo(0, saved);
     } else {
       window.scrollTo(0, 0);

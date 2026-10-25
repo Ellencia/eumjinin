@@ -1389,7 +1389,11 @@ main { padding-top: 64px; }
   background: #f8f9fa;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
+  scroll-margin-top: 84px; /* #앵커로 올 때 상단바 밑으로 */
 }
+.timeline-item:target { border-color: #c4b5fd; background: #faf8ff; }
+.timeline-link { color: inherit; text-decoration: underline; text-decoration-color: #c4b5fd; text-underline-offset: 3px; }
+.timeline-link:hover { color: #7c3aed; }
 
 .timeline-item strong {
   color: #7c3aed;
