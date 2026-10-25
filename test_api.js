@@ -97,6 +97,34 @@ async function main() {
   assert.equal(r.data.status, '합류'); assert.equal(r.data.memo, '드럼 가능'); assert.equal(r.data.leader, 0, '리더 해제');
   r = await req('PATCH', `/api/admin/members/${memId}`, { status: '없는상태' });
   assert.equal(r.status, 400, '잘못된 상태 거부');
+  // 팀·공연·라인업
+  r = await req('POST', '/api/admin/teams', { name: '와락밴드' });
+  assert.equal(r.status, 201, '팀 생성'); const teamId = r.data.id;
+  assert.equal((await req('POST', '/api/admin/teams', { name: '와락밴드' })).status, 409, '팀 이름 중복');
+  assert.equal((await req('POST', '/api/admin/events', { date: '2026-02-30', title: 'x' })).status, 400, '공연 날짜 검사');
+  const past = (await req('POST', '/api/admin/events', { date: '2026-01-04', time: '15:00', title: '정기모임', place: 'Art Hall K' })).data.id;
+  const future = (await req('POST', '/api/admin/events', { date: '2099-11-08', title: '정기모임' })).data.id;
+  for (const ev of [past, future]) assert.equal((await req('POST', `/api/admin/events/${ev}/teams`, { teamId })).status, 201, '라인업에 팀');
+  assert.equal((await req('POST', `/api/admin/events/${future}/teams`, { name: '청춘클럽' })).status, 201, '이름으로 넣으면 팀 자동 생성');
+  r = await req('GET', '/api/events', null, false);
+  assert.deepEqual(r.data.find(e => e.id === future).teams.map(t => t.name), ['와락밴드', '청춘클럽'], '공개 일정에 라인업(넣은 순서)');
+  assert.equal((await req('PATCH', `/api/admin/members/${memId}`, { teamId: 9999 })).status, 400, '없는 팀 연결 거부');
+  r = await req('PATCH', `/api/admin/members/${memId}`, { teamId: String(teamId) });
+  assert.equal(r.data.teamId, teamId, '멤버를 팀에 연결');
+  r = await req('GET', '/api/admin/teams');
+  const t = r.data.find(x => x.id === teamId);
+  assert.equal(t.shows, 2); assert.equal(t.last, '2026-01-04'); assert.equal(t.next, '2099-11-08', '팀 출연 이력은 라인업에서 셈');
+  assert.deepEqual(t.members.map(m => m.name), ['홍길동'], '팀에 연결된 멤버');
+  const other = r.data.find(x => x.name === '청춘클럽').id;
+  assert.equal((await req('PATCH', `/api/admin/teams/${other}`, { name: '와락밴드' })).status, 409, '팀 이름을 겹치게 바꾸면 409');
+  await req('DELETE', `/api/admin/teams/${teamId}`);
+  r = await req('GET', '/api/events', null, false);
+  assert.deepEqual(r.data.find(e => e.id === future).teams.map(t => t.name), ['청춘클럽'], '팀 삭제 시 라인업에서도 빠짐');
+  r = await req('GET', '/api/admin/members?q=길동');
+  assert.equal(r.data[0].teamId, null, '팀 삭제 시 멤버 연결 해제');
+  await req('DELETE', `/api/admin/events/${future}`);
+  assert.equal((await req('GET', '/api/events', null, false)).data.length, 1, '공연 삭제');
+
   r = await req('PATCH', `/api/admin/reservations/${resvId}`, { status: '취소' });
   assert.equal(r.data.status, '취소');
   r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '22:00', endTime: '23:00', name: '재시도', phone: '010-1111-2222', consent: true, age14: true });

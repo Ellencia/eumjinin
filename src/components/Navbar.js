@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   {
     label: '프로젝트',
     dropdown: [
+      { label: '공연 일정', href: '/schedule' },
       { label: '프로젝트 연혁', href: '/projects/overview' },
       { label: '진행 중 프로젝트', href: '/projects/ongoing' },
     ],

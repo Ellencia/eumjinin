@@ -53,10 +53,32 @@ db.exec(`
     path   TEXT NOT NULL,
     status INTEGER NOT NULL
   );
+  -- 팀·공연(2026-10-20). 개인정보 없음 → 공개 일정에 그대로 나감. 팀 연락처는 따로 안 받고 연결된 멤버(동의한 신청자)로
+  CREATE TABLE IF NOT EXISTS teams (
+    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    memo TEXT NOT NULL DEFAULT ''
+  );
+  CREATE TABLE IF NOT EXISTS events (
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    date  TEXT NOT NULL,
+    time  TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL,
+    place TEXT NOT NULL DEFAULT '',
+    note  TEXT NOT NULL DEFAULT ''
+  );
+  CREATE TABLE IF NOT EXISTS event_teams (
+    eventId INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    teamId  INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    PRIMARY KEY (eventId, teamId)
+  );
+  PRAGMA foreign_keys = ON;
 `);
-// 2026-10-18 추가 열. 기존 DB엔 ALTER로 (CREATE IF NOT EXISTS는 열을 안 늘림)
-if (!db.prepare('PRAGMA table_info(members)').all().some(c => c.name === 'leader'))
-  db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
+// 2026-10-18·20 추가 열. 기존 DB엔 ALTER로 (CREATE IF NOT EXISTS는 열을 안 늘림)
+const memberCols = db.prepare('PRAGMA table_info(members)').all().map(c => c.name);
+if (!memberCols.includes('leader')) db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
+// 신청자가 적은 band(자유 글자)는 그대로 두고, 관리자가 실제 팀에 연결
+if (!memberCols.includes('teamId')) db.exec('ALTER TABLE members ADD COLUMN teamId INTEGER REFERENCES teams(id) ON DELETE SET NULL');
 
 // 보유기간 경과분 자동 파기(개인정보처리방침 3절과 같은 숫자). 합류한 멤버는 활동 종료·철회 때 관리자가 삭제
 function purgeExpired() {
@@ -225,6 +247,14 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
   notify(`연습실 예약 신청 #${r.lastInsertRowid}\n${ROOM_NAMES[roomId]} · ${date} ${startTime}~${endTime}`);
 });
 
+// 공연 일정 + 라인업(팀 이름만). 공개 일정 페이지와 관리자 공연 탭이 같이 씀. 라인업 순서 = 넣은 순서(공지 순서)
+app.get('/api/events', (req, res) => {
+  const events = db.prepare('SELECT * FROM events ORDER BY date, time').all();
+  const lineup = db.prepare('SELECT et.eventId, t.id, t.name FROM event_teams et JOIN teams t ON t.id = et.teamId ORDER BY et.rowid').all();
+  for (const e of events) e.teams = lineup.filter(l => l.eventId === e.id).map(({ id, name }) => ({ id, name }));
+  res.json(events);
+});
+
 // 30회: 공연장 와이파이처럼 한 IP를 여럿이 쓰는 현장 가입 대비. 장난은 이름·이메일 검사와 연락처 중복이 거름
 // 신청서 1단계 "다음"에서 메일 도메인만 미리 확인(주소 앞부분은 안 받음). 최종 판정은 아래 POST가 다시 함
 app.get('/api/mx', rateLimit(60, 60 * 60 * 1000), async (req, res) =>
@@ -305,9 +335,15 @@ function patchRoute(table, cols, statuses) {
     if (!cur) return res.status(404).json({ error: '없는 항목입니다.' });
     const next = { ...cur };
     for (const c of cols) if (c in req.body) next[c] = String(req.body[c] ?? '').trim();
-    if (!statuses.includes(next.status)) return res.status(400).json({ error: '잘못된 상태값입니다.' });
+    if (statuses && !statuses.includes(next.status)) return res.status(400).json({ error: '잘못된 상태값입니다.' });
     if ('phone' in req.body) { next.phone = normalizePhone(req.body.phone); if (!PHONE_RE.test(next.phone)) return res.status(400).json({ error: '올바른 전화번호 형식이 아닙니다.' }); }
-    if (table === 'members') next.leader = Number(next.leader) ? 1 : 0;
+    if (table === 'members') {
+      next.leader = Number(next.leader) ? 1 : 0;
+      next.teamId = parseInt(next.teamId) || null;
+      if (next.teamId && !db.prepare('SELECT 1 FROM teams WHERE id = ?').get(next.teamId)) return res.status(400).json({ error: '없는 팀입니다.' });
+    }
+    if (table === 'teams' && !next.name) return res.status(400).json({ error: '팀 이름이 비었습니다.' });
+    if (table === 'events' && (!isDate(next.date) || !next.title)) return res.status(400).json({ error: '날짜와 제목은 필수입니다.' });
     if (table === 'reservations') {
       next.roomId = parseInt(next.roomId);
       if (!isDate(next.date) || !TIME_RE.test(next.startTime) || !TIME_RE.test(next.endTime) || next.startTime >= next.endTime)
@@ -315,19 +351,75 @@ function patchRoute(table, cols, statuses) {
       if (next.status !== '취소' && hasConflict(next.roomId, next.date, next.startTime, next.endTime, id))
         return res.status(409).json({ error: '해당 시간대에 이미 예약이 있습니다.' });
     }
-    db.prepare(`UPDATE ${table} SET ${cols.map(c => `${c} = ?`).join(', ')} WHERE id = ?`).run(...cols.map(c => next[c]), id);
+    try { db.prepare(`UPDATE ${table} SET ${cols.map(c => `${c} = ?`).join(', ')} WHERE id = ?`).run(...cols.map(c => next[c]), id); }
+    catch (e) { if (e.errcode === 2067) return res.status(409).json({ error: '같은 값이 이미 있습니다.' }); throw e; } // SQLITE_CONSTRAINT_UNIQUE: 팀 이름·연락처
     res.json(db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id));
   };
 }
 app.patch('/api/admin/reservations/:id', requireAdmin,
   patchRoute('reservations', ['roomId', 'date', 'startTime', 'endTime', 'name', 'phone', 'status', 'memo'], RESV_STATUS));
 app.patch('/api/admin/members/:id', requireAdmin,
-  patchRoute('members', ['name', 'email', 'phone', 'band', 'role', 'location', 'birth', 'genre', 'intro', 'leader', 'status', 'memo'], MEMBER_STATUS));
+  patchRoute('members', ['name', 'email', 'phone', 'band', 'role', 'location', 'birth', 'genre', 'intro', 'leader', 'teamId', 'status', 'memo'], MEMBER_STATUS));
 app.delete('/api/admin/reservations/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM reservations WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
 app.delete('/api/admin/members/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM members WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
+});
+
+// 팀: 출연 이력은 따로 저장하지 않고 공연 라인업에서 셈(지난 공연·다음 공연). 연결된 멤버는 이름·리더 여부만
+app.get('/api/admin/teams', requireAdmin, (req, res) => {
+  const today = kstToday();
+  const teams = db.prepare(`
+    SELECT t.*, COUNT(e.id) AS shows,
+      MAX(CASE WHEN e.date < ? THEN e.date END) AS last,
+      MIN(CASE WHEN e.date >= ? THEN e.date END) AS next
+    FROM teams t LEFT JOIN event_teams et ON et.teamId = t.id LEFT JOIN events e ON e.id = et.eventId
+    GROUP BY t.id ORDER BY t.name`).all(today, today);
+  const mems = db.prepare('SELECT id, name, leader, teamId FROM members WHERE teamId IS NOT NULL ORDER BY leader DESC, name').all();
+  for (const t of teams) t.members = mems.filter(m => m.teamId === t.id).map(({ id, name, leader }) => ({ id, name, leader }));
+  res.json(teams);
+});
+// 이름으로 팀 찾기, 없으면 만들기 → id
+function teamIdByName(name) {
+  db.prepare('INSERT OR IGNORE INTO teams (name) VALUES (?)').run(name);
+  return db.prepare('SELECT id FROM teams WHERE name = ?').get(name).id;
+}
+app.post('/api/admin/teams', requireAdmin, (req, res) => {
+  const name = String(req.body.name || '').trim().slice(0, 100);
+  if (!name) return res.status(400).json({ error: '팀 이름이 비었습니다.' });
+  if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return res.status(409).json({ error: '같은 이름의 팀이 있습니다.' });
+  res.status(201).json({ id: teamIdByName(name) });
+});
+app.patch('/api/admin/teams/:id', requireAdmin, patchRoute('teams', ['name', 'memo']));
+app.delete('/api/admin/teams/:id', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM teams WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
+});
+
+app.post('/api/admin/events', requireAdmin, (req, res) => {
+  const f = {};
+  for (const k of ['date', 'time', 'title', 'place', 'note']) f[k] = String(req.body[k] || '').trim().slice(0, k === 'note' ? 500 : 100);
+  if (!isDate(f.date) || !f.title) return res.status(400).json({ error: '날짜와 제목은 필수입니다.' });
+  const r = db.prepare('INSERT INTO events (date, time, title, place, note) VALUES (?, ?, ?, ?, ?)').run(f.date, f.time, f.title, f.place, f.note);
+  res.status(201).json({ id: Number(r.lastInsertRowid) });
+});
+app.patch('/api/admin/events/:id', requireAdmin, patchRoute('events', ['date', 'time', 'title', 'place', 'note']));
+app.delete('/api/admin/events/:id', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM events WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
+});
+// 라인업에 팀 추가. teamId 또는 name(없는 팀이면 새로 만듦 — 공지 보고 그대로 칠 수 있게)
+app.post('/api/admin/events/:id/teams', requireAdmin, (req, res) => {
+  const eventId = parseInt(req.params.id);
+  if (!db.prepare('SELECT 1 FROM events WHERE id = ?').get(eventId)) return res.status(404).json({ error: '없는 공연입니다.' });
+  const name = String(req.body.name || '').trim().slice(0, 100);
+  const teamId = name ? teamIdByName(name) : parseInt(req.body.teamId);
+  if (!db.prepare('SELECT 1 FROM teams WHERE id = ?').get(teamId)) return res.status(400).json({ error: '없는 팀입니다.' });
+  db.prepare('INSERT OR IGNORE INTO event_teams (eventId, teamId) VALUES (?, ?)').run(eventId, teamId);
+  res.status(201).json({ ok: true });
+});
+app.delete('/api/admin/events/:id/teams/:teamId', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM event_teams WHERE eventId = ? AND teamId = ?').run(parseInt(req.params.id), parseInt(req.params.teamId));
+  res.json({ ok: true });
 });
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

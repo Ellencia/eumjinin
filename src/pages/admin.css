@@ -19,6 +19,13 @@
 .adm-table th { background: #fafafd; font-weight: 600; color: #666; font-size: 0.8rem; }
 .adm-table a { color: #6d28d9; }
 .adm-memo { width: 180px; }
+.adm-name, .adm-short, .adm-lineup input { border: 1px solid #d9dbe3; border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; background: #fff; }
+.adm-name { width: 140px; }
+.adm-short, .adm-filters input.adm-short { width: 110px; min-width: 0; }
+.adm-lineup { white-space: normal !important; min-width: 260px; }
+.adm-chip { display: inline-flex; align-items: center; gap: 4px; margin: 2px 4px 2px 0; padding: 2px 4px 2px 8px; border-radius: 999px; background: #ede9fe; color: #4c1d95; font-size: 0.8rem; }
+.adm-chip button { background: none; border: none; color: #8b5cf6; cursor: pointer; font-size: 0.75rem; padding: 0 2px; }
+.adm-table tr.adm-past td { opacity: 0.55; }
 .adm-intro { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 .adm-dim { color: #999; font-size: 0.8rem; }
 .adm-empty { text-align: center; color: #999; padding: 32px !important; }

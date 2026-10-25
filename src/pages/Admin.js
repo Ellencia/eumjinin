@@ -21,11 +21,28 @@ async function api(path, opts = {}) {
 }
 
 // 입력창: 포커스 빠질 때만 저장. 치는 중엔 로컬 상태
-function MemoInput({ value, onSave }) {
+function MemoInput({ value, onSave, placeholder = '메모', className = 'adm-memo', type }) {
   const [v, setV] = useState(value);
   useEffect(() => setV(value), [value]);
-  return <input className="adm-memo" value={v} placeholder="메모" onChange={e => setV(e.target.value)}
+  return <input className={className} type={type} value={v} placeholder={placeholder} onChange={e => setV(e.target.value)}
     onBlur={() => v !== value && onSave(v)} />;
+}
+
+// 관리 탭 공통: 목록 불러오기 + 실패 처리. 401이면 로그인 화면으로
+function useList(path, onAuthFail) {
+  const [rows, setRows] = useState([]);
+  const [err, setErr] = useState('');
+  const load = useCallback(async () => {
+    try { setRows(await api(path)); setErr(''); }
+    catch (ex) { ex.status === 401 ? onAuthFail() : setErr(ex.message); }
+  }, [path, onAuthFail]);
+  useEffect(() => { load(); }, [load]);
+  // 변경 요청 후 다시 불러옴(출연 횟수 등 서버가 세는 값이 같이 바뀜)
+  const run = async (p, method, body) => {
+    try { await api(p, { method, body: body && JSON.stringify(body) }); await load(); }
+    catch (ex) { ex.status === 401 ? onAuthFail() : setErr(ex.message); }
+  };
+  return { rows, err, run };
 }
 
 function Login({ onDone }) {
@@ -117,7 +134,12 @@ function Members({ onAuthFail }) {
   const [err, setErr] = useState('');
   const [inv, setInv] = useState({});
   const [copied, setCopied] = useState(0);
-  useEffect(() => { api('/api/admin/invite').then(setInv).catch(() => {}); }, []);
+  const [teams, setTeams] = useState([]);
+  useEffect(() => {
+    api('/api/admin/invite').then(setInv).catch(() => {});
+    api('/api/admin/teams').then(setTeams).catch(() => {});
+  }, []);
+  const teamOf = id => teams.find(t => t.id === id);
   const copy = async m => {
     try { await navigator.clipboard.writeText(inviteText(m, inv)); setCopied(m.id); setTimeout(() => setCopied(0), 1500); }
     catch { setErr('클립보드 복사 실패'); }
@@ -148,7 +170,7 @@ function Members({ onAuthFail }) {
       </div>
       {err && <p className="adm-error">{err}</p>}
       <table className="adm-table">
-        <thead><tr><th>신청일</th><th>이름</th><th>연락처</th><th>이메일</th><th>밴드</th><th>역할</th><th>리더</th><th>장르</th><th>지역</th><th>생년</th><th>소개</th><th>상태</th><th>메모</th><th>안내문</th><th></th></tr></thead>
+        <thead><tr><th>신청일</th><th>이름</th><th>연락처</th><th>이메일</th><th>적은 밴드</th><th>팀</th><th>다음 출연</th><th>역할</th><th>리더</th><th>장르</th><th>지역</th><th>생년</th><th>소개</th><th>상태</th><th>메모</th><th>안내문</th><th></th></tr></thead>
         <tbody>
           {rows.map(m => (
             <tr key={m.id} className={`st-${m.status}`}>
@@ -156,7 +178,11 @@ function Members({ onAuthFail }) {
               <td>{m.name}</td>
               <td><a href={`tel:${m.phone}`}>{m.phone}</a></td>
               <td><a href={`mailto:${m.email}`}>{m.email}</a></td>
-              <td>{m.band}</td><td>{m.role}</td>
+              <td>{m.band}</td>
+              <td><select value={m.teamId || ''} onChange={e => patch(m.id, { teamId: e.target.value })}>
+                <option value="">—</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
+              <td className="adm-dim">{teamOf(m.teamId)?.next || ''}</td>
+              <td>{m.role}</td>
               <td><input type="checkbox" checked={!!m.leader} onChange={e => patch(m.id, { leader: e.target.checked ? 1 : 0 })} title="밴드 리더" /></td>
               <td>{m.genre}</td><td>{m.location}</td><td>{m.birth}</td>
               <td className="adm-intro" title={m.intro}>{m.intro}</td>
@@ -168,7 +194,98 @@ function Members({ onAuthFail }) {
               <td><button className="adm-del" onClick={() => remove(m.id)} title="삭제">✕</button></td>
             </tr>
           ))}
-          {rows.length === 0 && <tr><td colSpan={15} className="adm-empty">신청 없음</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={17} className="adm-empty">신청 없음</td></tr>}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+// 팀. 출연·지난·다음은 공연 탭 라인업에서 서버가 셈. 멤버 = 멤버 신청 탭에서 이 팀에 연결한 사람
+function Teams({ onAuthFail }) {
+  const { rows, err, run } = useList('/api/admin/teams', onAuthFail);
+  const [name, setName] = useState('');
+  const [q, setQ] = useState('');
+  const add = async e => { e.preventDefault(); if (!name.trim()) return; await run('/api/admin/teams', 'POST', { name }); setName(''); };
+  const remove = t => window.confirm(`'${t.name}' 팀을 삭제할까요? 라인업에서도 빠지고 멤버 연결이 풀립니다.`) && run(`/api/admin/teams/${t.id}`, 'DELETE');
+  const shown = rows.filter(t => t.name.includes(q.trim()));
+
+  return (
+    <>
+      <form className="adm-filters" onSubmit={add}>
+        <input placeholder="팀 이름 검색" value={q} onChange={e => setQ(e.target.value)} />
+        <input placeholder="새 팀 이름" value={name} onChange={e => setName(e.target.value)} />
+        <button className="adm-copy">팀 추가</button>
+        <span className="adm-count">{shown.length}팀</span>
+      </form>
+      {err && <p className="adm-error">{err}</p>}
+      <table className="adm-table">
+        <thead><tr><th>팀</th><th>출연</th><th>지난 출연</th><th>다음 출연</th><th>멤버</th><th>메모</th><th></th></tr></thead>
+        <tbody>
+          {shown.map(t => (
+            <tr key={t.id}>
+              <td><MemoInput value={t.name} placeholder="팀 이름" className="adm-name" onSave={v => run(`/api/admin/teams/${t.id}`, 'PATCH', { name: v })} /></td>
+              <td>{t.shows || ''}</td>
+              <td className="adm-dim">{t.last || ''}</td>
+              <td>{t.next || ''}</td>
+              <td>{t.members.map(m => m.leader ? `${m.name}(리더)` : m.name).join(', ')}</td>
+              <td><MemoInput value={t.memo} onSave={memo => run(`/api/admin/teams/${t.id}`, 'PATCH', { memo })} /></td>
+              <td><button className="adm-del" onClick={() => remove(t)} title="삭제">✕</button></td>
+            </tr>
+          ))}
+          {shown.length === 0 && <tr><td colSpan={7} className="adm-empty">팀 없음</td></tr>}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+// 공연 일정 + 라인업. 공개 /schedule 페이지가 같은 데이터를 그대로 보여줌
+function Events({ onAuthFail }) {
+  const { rows, err, run } = useList('/api/events', onAuthFail);
+  const [teams, setTeams] = useState([]);
+  useEffect(() => { api('/api/admin/teams').then(setTeams).catch(() => {}); }, [rows]); // 라인업에 새 이름을 치면 팀이 생기므로 따라 갱신
+  const empty = { date: '', time: '', title: '', place: '', note: '' };
+  const [f, setF] = useState(empty);
+  const add = async e => { e.preventDefault(); await run('/api/admin/events', 'POST', f); setF(empty); };
+  const edit = (id, k) => v => run(`/api/admin/events/${id}`, 'PATCH', { [k]: v });
+  const addTeam = (id, input) => { const name = input.value.trim(); input.value = ''; if (name) run(`/api/admin/events/${id}/teams`, 'POST', { name }); };
+  const today = todayStr();
+
+  return (
+    <>
+      <form className="adm-filters" onSubmit={add}>
+        <input type="date" required value={f.date} onChange={e => setF({ ...f, date: e.target.value })} />
+        <input className="adm-short" placeholder="시간 15:00" value={f.time} onChange={e => setF({ ...f, time: e.target.value })} />
+        <input required placeholder="제목 (정기모임 등)" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} />
+        <input className="adm-short" placeholder="장소" value={f.place} onChange={e => setF({ ...f, place: e.target.value })} />
+        <button className="adm-copy">공연 추가</button>
+        <span className="adm-count">{rows.length}건</span>
+      </form>
+      {err && <p className="adm-error">{err}</p>}
+      <datalist id="adm-team-names">{teams.map(t => <option key={t.id} value={t.name} />)}</datalist>
+      <table className="adm-table">
+        <thead><tr><th>날짜</th><th>시간</th><th>제목</th><th>장소</th><th>라인업</th><th>비고</th><th></th></tr></thead>
+        <tbody>
+          {rows.map(ev => (
+            <tr key={ev.id} className={ev.date < today ? 'adm-past' : ''}>
+              <td><MemoInput type="date" value={ev.date} className="adm-name" onSave={edit(ev.id, 'date')} /></td>
+              <td><MemoInput value={ev.time} placeholder="시간" className="adm-short" onSave={edit(ev.id, 'time')} /></td>
+              <td><MemoInput value={ev.title} placeholder="제목" className="adm-name" onSave={edit(ev.id, 'title')} /></td>
+              <td><MemoInput value={ev.place} placeholder="장소" className="adm-short" onSave={edit(ev.id, 'place')} /></td>
+              <td className="adm-lineup">
+                {ev.teams.map(t => (
+                  <span key={t.id} className="adm-chip">{t.name}
+                    <button onClick={() => run(`/api/admin/events/${ev.id}/teams/${t.id}`, 'DELETE')} title="라인업에서 빼기">✕</button></span>
+                ))}
+                <input list="adm-team-names" placeholder="팀 추가 (Enter)" className="adm-short"
+                  onKeyDown={e => e.key === 'Enter' && addTeam(ev.id, e.target)} />
+              </td>
+              <td><MemoInput value={ev.note} placeholder="비고" onSave={edit(ev.id, 'note')} /></td>
+              <td><button className="adm-del" onClick={() => window.confirm(`${ev.date} ${ev.title} 삭제할까요?`) && run(`/api/admin/events/${ev.id}`, 'DELETE')} title="삭제">✕</button></td>
+            </tr>
+          ))}
+          {rows.length === 0 && <tr><td colSpan={7} className="adm-empty">공연 없음</td></tr>}
         </tbody>
       </table>
     </>
@@ -194,11 +311,16 @@ function Admin() {
         <nav>
           <button className={tab === 'resv' ? 'active' : ''} onClick={() => setTab('resv')}>연습실 예약</button>
           <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>멤버 신청</button>
+          <button className={tab === 'teams' ? 'active' : ''} onClick={() => setTab('teams')}>팀</button>
+          <button className={tab === 'events' ? 'active' : ''} onClick={() => setTab('events')}>공연</button>
         </nav>
         <button className="adm-logout" onClick={logout}>로그아웃</button>
       </header>
       <main className="adm-main">
-        {tab === 'resv' ? <Reservations onAuthFail={onAuthFail} /> : <Members onAuthFail={onAuthFail} />}
+        {tab === 'resv' && <Reservations onAuthFail={onAuthFail} />}
+        {tab === 'members' && <Members onAuthFail={onAuthFail} />}
+        {tab === 'teams' && <Teams onAuthFail={onAuthFail} />}
+        {tab === 'events' && <Events onAuthFail={onAuthFail} />}
       </main>
     </div>
   );

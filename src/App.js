@@ -14,6 +14,7 @@ import SpaceList from './pages/SpaceList';
 import SpaceDetail from './pages/SpaceDetail';
 import InfoPage from './pages/InfoPage';
 import Privacy from './pages/Privacy';
+import Schedule from './pages/Schedule';
 import Admin from './pages/Admin';
 import ScrollManager from './components/ScrollManager';
 import './App.css';
@@ -76,6 +77,7 @@ function Site() {
             <Route path="/community/qna" element={<InfoPage />} />
             <Route path="/projects/overview" element={<InfoPage />} />
             <Route path="/projects/ongoing" element={<InfoPage />} />
+            <Route path="/schedule" element={<Schedule />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
