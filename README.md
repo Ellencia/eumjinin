@@ -56,6 +56,7 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 - 관리자 세션: 60분 요청이 없으면 만료
 - 관리자 접속기록 `admin_log`(로그인 시도 포함). 월 1회 점검:
   `ssh root@158.247.204.136 "sqlite3 /srv/kband/data/kband.db \"SELECT at, ip, method, path, status FROM admin_log WHERE at > datetime('now','-1 month') ORDER BY at\""`
+- 전송량(월 한도 대비): 서버에 vnstat(2026-10-25 설치, 그 이후분만 집계). 월별은 `ssh root@158.247.204.136 vnstat -m`, 최근 30일 일별은 `vnstat -d`. tx가 방문자에게 나간 양. 공식 사용량·한도는 Vultr 콘솔 인스턴스 > Usage Graphs
 - 글꼴은 `@fontsource/*`로 직접 호스팅(외부 호출 없음). 라이선스는 `public/third-party-licenses.txt`
 
 ## 백업
