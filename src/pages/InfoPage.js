@@ -197,7 +197,8 @@ function LocationBlock() {
         </div>
         <div className="location-row">
           <strong>대중교통</strong>
-          <span>확인 후 안내</span>
+          {/* 네이버 지도 길찾기 기준(2026-10). 가장 가까운 정류장은 행주초등학교(마을버스 011) */}
+          <span>경의중앙선 능곡역에서 마을버스 011 → 행주초등학교 하차, 도보 1분. 직행 1082·광역 9707은 맨돌 하차 후 도보 8분</span>
         </div>
         <div className="location-row">
           <strong>연습실</strong>
@@ -205,7 +206,7 @@ function LocationBlock() {
         </div>
         <div className="location-row">
           <strong>입장</strong>
-          <span>예약자 사전 안내 문자 발송 예정</span>
+          <span>정기 공연 무료 입장</span>
         </div>
       </div>
     </div>
