@@ -34,9 +34,8 @@ const NAV_ITEMS = [
   }
 ];
 
-const RIGHT_ITEMS = [
-  { label: '연습실 예약', href: '/reservation', highlight: true },
-];
+// 연습실 미확정 → 예약 버튼 숨김(10-25). 확정되면 { label: '연습실 예약', href: '/reservation', highlight: true } 복구
+const RIGHT_ITEMS = [];
 
 const dropdownItems = NAV_ITEMS.filter((item) => item.dropdown);
 

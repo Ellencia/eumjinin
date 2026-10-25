@@ -21,7 +21,7 @@ const SPACE_IMAGES = {
 const kicker = { stage: 'STAGE · 공연장', rehearsal: 'REHEARSAL · 연습실' };
 const pad = (n) => String(n).padStart(2, '0');
 
-function Lightbox({ images, index, onClose }) {
+export function Lightbox({ images, index, onClose }) {
   const [current, setCurrent] = useState(index);
 
   const prev = (e) => { e?.stopPropagation(); setCurrent((c) => (c - 1 + images.length) % images.length); };
@@ -42,18 +42,19 @@ function Lightbox({ images, index, onClose }) {
     [current - 1, current + 1].forEach((i) => { new Image().src = images[(i + images.length) % images.length]; });
   }, [current, images]);
 
+  const many = images.length > 1; // 한 장(신고확인증 등)이면 화살표·카운터 없음
   return (
     <div className="lightbox-overlay" onClick={onClose}>
       <button className="lightbox-close" onClick={onClose}>✕</button>
-      <button className="lightbox-arrow lightbox-prev" onClick={prev}>&#8249;</button>
+      {many && <button className="lightbox-arrow lightbox-prev" onClick={prev}>&#8249;</button>}
       <img
         src={images[current]}
         alt={`${current + 1}`}
         className="lightbox-img"
         onClick={(e) => e.stopPropagation()}
       />
-      <button className="lightbox-arrow lightbox-next" onClick={next}>&#8250;</button>
-      <p className="lightbox-counter">{current + 1} / {images.length}</p>
+      {many && <button className="lightbox-arrow lightbox-next" onClick={next}>&#8250;</button>}
+      {many && <p className="lightbox-counter">{current + 1} / {images.length}</p>}
     </div>
   );
 }

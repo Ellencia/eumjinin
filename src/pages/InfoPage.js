@@ -1,17 +1,26 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MapIcon } from '../components/Icons';
+import { Lightbox } from './SpaceDetail';
 import PAGES from '../data/pages.json';
 
 // 'YYYY-MM-DD'(방문자 현지 날짜). 날짜 붙은 일정은 이걸로 "(예정)"·진행 중 여부가 저절로 바뀜
 const today = () => new Date().toLocaleDateString('sv-SE');
 
+// 연혁 사진: src/assets/namiNN.webp(원본) + thumbs/(make_thumbs.py). 파일만 추가하면 번호순으로 들어감
+const photoSet = (ctx) => {
+  const set = { full: [], thumb: [] };
+  ctx.keys().sort().forEach((k) => (k.includes('/thumbs/') ? set.thumb : set.full).push(ctx(k)));
+  return set;
+};
+const NAMI = {
+  link: ['머니투데이 기사', 'https://n.news.naver.com/article/008/0005431254'],
+  photos: photoSet(require.context('../assets', true, /nami\d+\.webp$/)),
+};
+
 /* ── Q&A 데이터 ── */
+// 예약·연습실·장비 항목은 연습실 확정 때까지 뺌(10-25)
 const FAQ = [
-  { q: '예약은 누구나 할 수 있나요?', a: '현재 파일럿 기간에는 신청서를 제출한 멤버를 대상으로 예약을 운영합니다. 멤버 신청은 홈 화면 하단에서 가능합니다.' },
-  { q: '예약 취소·변경은 어떻게 하나요?', a: '담당자가 확인 연락을 드릴 때 연락처를 함께 안내드립니다. 이용 24시간 전까지 그 연락처로 취소 또는 변경을 요청하실 수 있으며, 이후에는 취소가 어려울 수 있습니다.' },
-  { q: '연습실 이용 가능 시간이 어떻게 되나요?', a: '00:00 ~ 29:00(익일 05:00) 슬롯으로 운영합니다. 자정을 넘기는 경우 +1 표시로 익일 새벽 시간을 선택할 수 있습니다.' },
-  { q: '장비를 직접 가져와서 쓸 수 있나요?', a: '개인 장비 반입은 기본적으로 허용됩니다. 단, 공간 내 기존 장비와 충돌이 없도록 담당자 확인 연락 때 미리 말씀해 주세요.' },
   { q: '멤버 신청 후 승인까지 얼마나 걸리나요?', a: '신청 접수 후 담당자가 검토하여 연락드립니다. 보통 2~3일 이내에 안내가 전달됩니다.' },
   { q: 'Art Hall K 대관 문의를 할 수 있나요?', a: '대관 여부는 공간 운영 측에서 결정하며, 음진인은 요청을 전달해 드리는 위치입니다. 희망 일정과 함께 담당자(김인현 010-3099-6929)에게 문의해 주시면 확인 후 연락드립니다.' },
 ];
@@ -42,7 +51,7 @@ const pages = {
       ['2026. 08', '제2회 횡성 여름 음악 캠프'],
       ['2026. 10. 08', '음진인 협동조합 설립 신고 (고양시)'],
       ['2026. 10. 17', '공식 홈페이지 kband.co.kr 개통'],
-      ['2026. 10. 24', '2026 남이섬 가을 음악 페스티벌 주최·주관', '2026-10-24'],
+      ['2026. 10. 24', '2026 남이섬 가을 음악 페스티벌 주최 (남이섬 에코스테이지, 10팀 경연 · 대상 무모한사람들)', '2026-10-24', NAMI],
       ['2026. 10. 30', '마곡나루 공연', '2026-10-30'],
     ],
   },
@@ -83,6 +92,7 @@ const pages = {
     timeline: [
       ['매월', 'Art Hall K 정기 공연'],
       ['2026. 06 ~ 08', '머니투데이 도전! 청춘가요제 예선·본선 Art Hall K 개최'],
+      ['2026. 10. 24', '2026 남이섬 가을 음악 페스티벌 주최 (남이섬 에코스테이지, 10팀 경연 · 대상 무모한사람들)', '2026-10-24', NAMI],
     ],
   },
   '/projects/ongoing': {
@@ -113,6 +123,23 @@ function FaqAccordion() {
         </div>
       ))}
     </div>
+  );
+}
+
+// 연혁 항목 밑 썸네일 줄. 누르면 SpaceDetail의 라이트박스로 원본
+function TimelinePhotos({ images, label }) {
+  const [idx, setIdx] = useState(null);
+  return (
+    <>
+      <div className="timeline-photos">
+        {images.thumb.map((src, k) => (
+          <button key={k} type="button" aria-label={`${label} 사진 ${k + 1} 크게 보기`} onClick={() => setIdx(k)}>
+            <img src={src} alt="" loading="lazy" />
+          </button>
+        ))}
+      </div>
+      {idx !== null && <Lightbox images={images.full} index={idx} onClose={() => setIdx(null)} />}
+    </>
   );
 }
 
@@ -181,10 +208,16 @@ function InfoPage() {
 
         {page.timeline && (
           <div className="timeline-list">
-            {page.timeline.map(([time, text, date]) => (
+            {page.timeline.map(([time, text, date, extra]) => (
               <article className="timeline-item" key={time}>
                 <strong>{time}</strong>
-                <p>{text}{date >= now && ' (예정)'}</p>
+                <div>
+                  <p>
+                    {text}{date >= now && ' (예정)'}
+                    {extra?.link && <> · <a href={extra.link[1]} target="_blank" rel="noopener noreferrer" className="timeline-link">{extra.link[0]}</a></>}
+                  </p>
+                  {extra?.photos && <TimelinePhotos images={extra.photos} label={text} />}
+                </div>
               </article>
             ))}
           </div>

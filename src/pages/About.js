@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import Reveal from '../components/Reveal';
+import { Lightbox } from './SpaceDetail';
 import coopCert from '../assets/coop-cert.jpg';
 
 const values = [
@@ -18,6 +20,7 @@ const values = [
 
 // 시안 A: 소개 문장 하나를 크게, 세 가치와 확인증은 아래 한 줄
 function About() {
+  const [certOpen, setCertOpen] = useState(false);
   return (
     <section className="about" id="about">
       <div className="ab-inner">
@@ -36,14 +39,15 @@ function About() {
           ))}
           <Reveal delay={360}>
             <figure className="ab-cert">
-              <a href={coopCert} target="_blank" rel="noopener noreferrer" aria-label="설립 신고확인증 크게 보기">
+              <button type="button" onClick={() => setCertOpen(true)} aria-label="설립 신고확인증 크게 보기">
                 <img src={coopCert} alt="음진인 협동조합 설립 신고확인증 (고양시, 2026년 10월 8일)" loading="lazy" />
-              </a>
+              </button>
               <figcaption>음진인 협동조합<br />2026. 10. 08 고양시 설립 신고</figcaption>
             </figure>
           </Reveal>
         </div>
       </div>
+      {certOpen && <Lightbox images={[coopCert]} index={0} onClose={() => setCertOpen(false)} />}
     </section>
   );
 }
