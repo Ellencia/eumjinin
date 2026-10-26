@@ -119,12 +119,25 @@ function Reservations({ onAuthFail }) {
 
 // 합류 안내문. 링크·참여코드는 서버 .env(BAND_INVITE_URL·KAKAO_OPEN_URL·KAKAO_OPEN_CODE). 관리자가 복사해서 문자·카톡으로 보냄
 function inviteText(m, inv) {
-  const lines = [`${m.name}님, 음진인 멤버 신청 확인했습니다.`];
-  if (inv.band) lines.push('아래 링크로 밴드(네이버 BAND) 가입 신청해 주시면 승인해 드리겠습니다.', inv.band);
+  const lines = [
+    '[음진인 협동조합] 멤버 신청 안내',
+    '',
+    `안녕하세요, ${m.name}님.`,
+    '음악에 진심인 사람들, 음진인 협동조합입니다.',
+    '멤버 신청서 잘 받았습니다. 관심 가져 주셔서 감사합니다.',
+  ];
+  if (inv.band) lines.push('', '■ 네이버 밴드 가입',
+    '음진인 소식과 공연 공지는 네이버 밴드에서 나눕니다.',
+    '아래 링크에서 가입 신청해 주시면 운영진이 확인 후 승인해 드립니다.', inv.band);
   if (m.leader && inv.chat) {
-    lines.push('', '밴드 리더 단톡방(카카오 오픈채팅)에도 참여해 주세요.', inv.chat);
+    lines.push('', '■ 밴드 리더 단톡방',
+      '팀 리더분들은 공연 일정·라인업 조율을 위해 리더 단톡방(카카오 오픈채팅)에도 참여 부탁드립니다.', inv.chat);
     if (inv.chatCode) lines.push(`참여코드: ${inv.chatCode}`);
   }
+  lines.push('', '■ 정기 공연',
+    '매월 행주산성 Art Hall K에서 정기 공연이 열립니다. 일정은 밴드 공지와 홈페이지에서 확인하실 수 있습니다.',
+    'https://kband.co.kr',
+    '', '앞으로 무대에서 뵙겠습니다. 감사합니다.', '음진인 협동조합 드림');
   return lines.join('\n');
 }
 
