@@ -38,6 +38,28 @@
 .adm-table tr.st-취소 td, .adm-table tr.st-보류 td { color: #aaa; }
 .adm-table tr.st-확정 td:first-child, .adm-table tr.st-합류 td:nth-child(2) { font-weight: 700; color: #15803d; }
 
+/* 폰: 표 → 행마다 카드, 칸 이름은 td data-label */
+@media (max-width: 720px) {
+  .adm-header { flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; }
+  .adm-header nav { order: 3; width: 100%; overflow-x: auto; }
+  .adm-header nav button { white-space: nowrap; padding: 8px 12px; }
+  .adm-main { padding: 12px; }
+  .adm-filters input[type="text"], .adm-filters input:not([type]) { min-width: 0; flex: 1 1 100%; }
+  .adm-table, .adm-table tbody, .adm-table tr, .adm-table td { display: block; }
+  .adm-table { border: none; background: none; }
+  .adm-table thead { display: none; }
+  .adm-table tr { position: relative; background: #fff; border: 1px solid #e3e5ec; border-radius: 10px; padding: 8px 0; margin-bottom: 12px; }
+  .adm-table td { display: flex; align-items: center; gap: 12px; white-space: normal; border: none; padding: 5px 14px; min-width: 0; max-width: none; }
+  .adm-table td[data-label]::before { content: attr(data-label); flex: 0 0 64px; color: #999; font-size: 0.8rem; }
+  .adm-table td:empty { display: none; }
+  .adm-table td > input:not([type="checkbox"]), .adm-table td > select, .adm-memo, .adm-name, .adm-short { flex: 1; width: auto; min-width: 0; }
+  .adm-title { font-size: 1.05rem; font-weight: 700; }
+  .adm-intro { align-items: flex-start !important; }
+  .adm-table tr > td:first-child { padding-right: 44px; }
+  .adm-act { position: absolute; top: 6px; right: 4px; padding: 4px 8px !important; }
+  .adm-lineup { flex-wrap: wrap; min-width: 0; }
+}
+
 .adm-login { max-width: 320px; margin: 20vh auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
 .adm-login h1 { font-size: 1.3rem; margin: 0 0 8px; }
 .adm-login input { border: 1px solid #d9dbe3; border-radius: 8px; padding: 10px 12px; font-size: 1rem; }

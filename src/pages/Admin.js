@@ -99,15 +99,15 @@ function Reservations({ onAuthFail }) {
         <tbody>
           {rows.map(r => (
             <tr key={r.id} className={`st-${r.status}`}>
-              <td>{r.date}</td>
-              <td>{r.startTime}~{r.endTime}</td>
-              <td>{roomName(r.roomId)}</td>
-              <td>{r.name}</td>
-              <td><a href={`tel:${r.phone}`}>{r.phone}</a></td>
-              <td><select value={r.status} onChange={e => patch(r.id, { status: e.target.value })}>{RESV_STATUS.map(s => <option key={s}>{s}</option>)}</select></td>
-              <td><MemoInput value={r.memo} onSave={memo => patch(r.id, { memo })} /></td>
-              <td className="adm-dim">{fmtDateTime(r.createdAt)}</td>
-              <td><button className="adm-del" onClick={() => remove(r.id)} title="삭제">✕</button></td>
+              <td data-label="날짜">{r.date}</td>
+              <td data-label="시간">{r.startTime}~{r.endTime}</td>
+              <td data-label="방">{roomName(r.roomId)}</td>
+              <td data-label="이름">{r.name}</td>
+              <td data-label="연락처"><a href={`tel:${r.phone}`}>{r.phone}</a></td>
+              <td data-label="상태"><select value={r.status} onChange={e => patch(r.id, { status: e.target.value })}>{RESV_STATUS.map(s => <option key={s}>{s}</option>)}</select></td>
+              <td data-label="메모"><MemoInput value={r.memo} onSave={memo => patch(r.id, { memo })} /></td>
+              <td data-label="신청일" className="adm-dim">{fmtDateTime(r.createdAt)}</td>
+              <td className="adm-act"><button className="adm-del" onClick={() => remove(r.id)} title="삭제">✕</button></td>
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={9} className="adm-empty">예약 없음</td></tr>}
@@ -187,24 +187,24 @@ function Members({ onAuthFail }) {
         <tbody>
           {rows.map(m => (
             <tr key={m.id} className={`st-${m.status}`}>
-              <td className="adm-dim">{fmtDateTime(m.createdAt)}</td>
-              <td>{m.name}</td>
-              <td><a href={`tel:${m.phone}`}>{m.phone}</a></td>
-              <td><a href={`mailto:${m.email}`}>{m.email}</a></td>
-              <td>{m.band}</td>
-              <td><select value={m.teamId || ''} onChange={e => patch(m.id, { teamId: e.target.value })}>
+              <td data-label="신청일" className="adm-dim">{fmtDateTime(m.createdAt)}</td>
+              <td data-label="이름" className="adm-title">{m.name}</td>
+              <td data-label="연락처"><a href={`tel:${m.phone}`}>{m.phone}</a></td>
+              <td data-label="이메일"><a href={`mailto:${m.email}`}>{m.email}</a></td>
+              <td data-label="적은 밴드">{m.band}</td>
+              <td data-label="팀"><select value={m.teamId || ''} onChange={e => patch(m.id, { teamId: e.target.value })}>
                 <option value="">—</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
-              <td className="adm-dim">{teamOf(m.teamId)?.next || ''}</td>
-              <td>{m.role}</td>
-              <td><input type="checkbox" checked={!!m.leader} onChange={e => patch(m.id, { leader: e.target.checked ? 1 : 0 })} title="밴드 리더" /></td>
-              <td>{m.genre}</td><td>{m.location}</td><td>{m.birth}</td>
-              <td className="adm-intro" title={m.intro}>{m.intro}</td>
-              <td><select value={m.status} onChange={e => patch(m.id, { status: e.target.value })}>{MEMBER_STATUS.map(s => <option key={s}>{s}</option>)}</select></td>
-              <td><MemoInput value={m.memo} onSave={memo => patch(m.id, { memo })} /></td>
-              <td><button className="adm-copy" onClick={() => copy(m)} disabled={!inv.band && !inv.chat}
+              <td data-label="다음 출연" className="adm-dim">{teamOf(m.teamId)?.next || ''}</td>
+              <td data-label="역할">{m.role}</td>
+              <td data-label="리더"><input type="checkbox" checked={!!m.leader} onChange={e => patch(m.id, { leader: e.target.checked ? 1 : 0 })} title="밴드 리더" /></td>
+              <td data-label="장르">{m.genre}</td><td data-label="지역">{m.location}</td><td data-label="생년">{m.birth}</td>
+              <td data-label="소개" className="adm-intro">{m.intro}</td>
+              <td data-label="상태"><select value={m.status} onChange={e => patch(m.id, { status: e.target.value })}>{MEMBER_STATUS.map(s => <option key={s}>{s}</option>)}</select></td>
+              <td data-label="메모"><MemoInput value={m.memo} onSave={memo => patch(m.id, { memo })} /></td>
+              <td data-label="안내문"><button className="adm-copy" onClick={() => copy(m)} disabled={!inv.band && !inv.chat}
                 title={inv.band || inv.chat ? '밴드 링크(리더면 오픈채팅까지) 안내문을 클립보드로' : '서버 .env에 BAND_INVITE_URL 등이 없음'}>
                 {copied === m.id ? '복사됨' : '복사'}</button></td>
-              <td><button className="adm-del" onClick={() => remove(m.id)} title="삭제">✕</button></td>
+              <td className="adm-act"><button className="adm-del" onClick={() => remove(m.id)} title="삭제">✕</button></td>
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={17} className="adm-empty">신청 없음</td></tr>}
@@ -237,13 +237,13 @@ function Teams({ onAuthFail }) {
         <tbody>
           {shown.map(t => (
             <tr key={t.id}>
-              <td><MemoInput value={t.name} placeholder="팀 이름" className="adm-name" onSave={v => run(`/api/admin/teams/${t.id}`, 'PATCH', { name: v })} /></td>
-              <td>{t.shows || ''}</td>
-              <td className="adm-dim">{t.last || ''}</td>
-              <td>{t.next || ''}</td>
-              <td>{t.members.map(m => m.leader ? `${m.name}(리더)` : m.name).join(', ')}</td>
-              <td><MemoInput value={t.memo} onSave={memo => run(`/api/admin/teams/${t.id}`, 'PATCH', { memo })} /></td>
-              <td><button className="adm-del" onClick={() => remove(t)} title="삭제">✕</button></td>
+              <td data-label="팀"><MemoInput value={t.name} placeholder="팀 이름" className="adm-name" onSave={v => run(`/api/admin/teams/${t.id}`, 'PATCH', { name: v })} /></td>
+              <td data-label="출연">{t.shows || ''}</td>
+              <td data-label="지난 출연" className="adm-dim">{t.last || ''}</td>
+              <td data-label="다음 출연">{t.next || ''}</td>
+              <td data-label="멤버">{t.members.map(m => m.leader ? `${m.name}(리더)` : m.name).join(', ')}</td>
+              <td data-label="메모"><MemoInput value={t.memo} onSave={memo => run(`/api/admin/teams/${t.id}`, 'PATCH', { memo })} /></td>
+              <td className="adm-act"><button className="adm-del" onClick={() => remove(t)} title="삭제">✕</button></td>
             </tr>
           ))}
           {shown.length === 0 && <tr><td colSpan={7} className="adm-empty">팀 없음</td></tr>}
@@ -282,11 +282,11 @@ function Events({ onAuthFail }) {
         <tbody>
           {rows.map(ev => (
             <tr key={ev.id} className={ev.date < today ? 'adm-past' : ''}>
-              <td><MemoInput type="date" value={ev.date} className="adm-name" onSave={edit(ev.id, 'date')} /></td>
-              <td><MemoInput value={ev.time} placeholder="시간" className="adm-short" onSave={edit(ev.id, 'time')} /></td>
-              <td><MemoInput value={ev.title} placeholder="제목" className="adm-name" onSave={edit(ev.id, 'title')} /></td>
-              <td><MemoInput value={ev.place} placeholder="장소" className="adm-short" onSave={edit(ev.id, 'place')} /></td>
-              <td className="adm-lineup">
+              <td data-label="날짜"><MemoInput type="date" value={ev.date} className="adm-name" onSave={edit(ev.id, 'date')} /></td>
+              <td data-label="시간"><MemoInput value={ev.time} placeholder="시간" className="adm-short" onSave={edit(ev.id, 'time')} /></td>
+              <td data-label="제목"><MemoInput value={ev.title} placeholder="제목" className="adm-name" onSave={edit(ev.id, 'title')} /></td>
+              <td data-label="장소"><MemoInput value={ev.place} placeholder="장소" className="adm-short" onSave={edit(ev.id, 'place')} /></td>
+              <td data-label="라인업" className="adm-lineup">
                 {ev.teams.map(t => (
                   <span key={t.id} className="adm-chip">{t.name}
                     <button onClick={() => run(`/api/admin/events/${ev.id}/teams/${t.id}`, 'DELETE')} title="라인업에서 빼기">✕</button></span>
@@ -294,8 +294,8 @@ function Events({ onAuthFail }) {
                 <input list="adm-team-names" placeholder="팀 추가 (Enter)" className="adm-short"
                   onKeyDown={e => e.key === 'Enter' && addTeam(ev.id, e.target)} />
               </td>
-              <td><MemoInput value={ev.note} placeholder="비고" onSave={edit(ev.id, 'note')} /></td>
-              <td><button className="adm-del" onClick={() => window.confirm(`${ev.date} ${ev.title} 삭제할까요?`) && run(`/api/admin/events/${ev.id}`, 'DELETE')} title="삭제">✕</button></td>
+              <td data-label="비고"><MemoInput value={ev.note} placeholder="비고" onSave={edit(ev.id, 'note')} /></td>
+              <td className="adm-act"><button className="adm-del" onClick={() => window.confirm(`${ev.date} ${ev.title} 삭제할까요?`) && run(`/api/admin/events/${ev.id}`, 'DELETE')} title="삭제">✕</button></td>
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={7} className="adm-empty">공연 없음</td></tr>}
