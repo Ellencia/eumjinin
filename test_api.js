@@ -117,6 +117,31 @@ async function main() {
   assert.deepEqual(t.members.map(m => m.name), ['홍길동'], '팀에 연결된 멤버');
   const other = r.data.find(x => x.name === '청춘클럽').id;
   assert.equal((await req('PATCH', `/api/admin/teams/${other}`, { name: '와락밴드' })).status, 409, '팀 이름을 겹치게 바꾸면 409');
+
+  // 팀 소개: 수정 링크로 팀이 직접, 바로 공개, 관리자는 숨김·재발급
+  r = await req('GET', '/api/events', null, false);
+  assert.equal(r.data.find(e => e.id === future).teams.find(x => x.id === other).page, false, '빈 팀은 일정에서 링크 안 함');
+  const key1 = (await req('POST', `/api/admin/teams/${other}/key`)).data.editKey;
+  assert.match(key1, /^[a-f0-9]{32}$/, '수정 링크 발급');
+  assert.equal((await req('GET', `/api/team-edit/${key1}`, null, false)).data.name, '청춘클럽', '링크로 팀 열기(로그인 없이)');
+  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { videos: ['https://example.com/x'] }, false)).status, 400, '유튜브 아닌 주소 거부');
+  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { videos: Array.from({ length: 7 }, (_, i) => `https://youtu.be/aaaaaaaaaa${i}`) }, false)).status, 400, '영상 7개 거부');
+  r = await req('PUT', `/api/team-edit/${key1}`, { genre: '모던록', intro: '안녕하세요', videos: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10', 'https://youtu.be/dQw4w9WgXcQ', 'youtube.com/shorts/abcdefghijk', ''] }, false);
+  assert.equal(r.status, 200, '팀이 소개 저장');
+  r = await req('GET', `/api/teams/${other}`, null, false);
+  assert.deepEqual(r.data.videos, ['dQw4w9WgXcQ', 'abcdefghijk'], '유튜브 주소 → id, 중복 제거');
+  assert.equal(r.data.events.length, 1, '팀 페이지에 출연 이력');
+  r = await req('GET', '/api/events', null, false);
+  assert.equal(r.data.find(e => e.id === future).teams.find(x => x.id === other).page, true, '소개 채운 팀은 일정에서 링크');
+  assert.equal((await fetch(`${BASE}/sitemap.xml`).then(x => x.text())).includes(`/teams/${other}`), true, '사이트맵에 팀 페이지');
+  await req('PATCH', `/api/admin/teams/${other}`, { hidden: 1 });
+  assert.equal((await req('GET', `/api/teams/${other}`, null, false)).status, 404, '숨긴 팀 페이지는 404');
+  assert.equal((await req('GET', '/api/events', null, false)).data.find(e => e.id === future).teams.find(x => x.id === other).page, false, '숨긴 팀은 링크 안 함');
+  assert.equal((await req('GET', `/api/team-edit/${key1}`, null, false)).data.hidden, true, '팀은 숨김 상태를 봄');
+  await req('PATCH', `/api/admin/teams/${other}`, { hidden: 0 });
+  const key2 = (await req('POST', `/api/admin/teams/${other}/key`)).data.editKey;
+  assert.equal((await req('GET', `/api/team-edit/${key1}`, null, false)).status, 404, '재발급하면 예전 링크 무효');
+  assert.equal((await req('GET', `/api/team-edit/${key2}`, null, false)).status, 200, '새 링크는 됨');
   await req('DELETE', `/api/admin/teams/${teamId}`);
   r = await req('GET', '/api/events', null, false);
   assert.deepEqual(r.data.find(e => e.id === future).teams.map(t => t.name), ['청춘클럽'], '팀 삭제 시 라인업에서도 빠짐');

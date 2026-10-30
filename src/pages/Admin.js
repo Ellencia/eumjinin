@@ -224,6 +224,17 @@ function Teams({ onAuthFail }) {
   const add = async e => { e.preventDefault(); if (!name.trim()) return; await run('/api/admin/teams', 'POST', { name }); setName(''); };
   const remove = t => window.confirm(`'${t.name}' 팀을 삭제할까요? 라인업에서도 빠지고 멤버 연결이 풀립니다.`) && run(`/api/admin/teams/${t.id}`, 'DELETE');
   const shown = rows.filter(t => t.name.includes(q.trim()));
+  const [copied, setCopied] = useState(0);
+  // 수정 링크: 없으면 만들고 복사. 재발급은 예전 링크가 죽으므로 확인
+  const copyKey = async (t, fresh) => {
+    if (fresh && !window.confirm(`'${t.name}' 수정 링크를 새로 만들까요? 예전 링크는 바로 못 씁니다.`)) return;
+    try {
+      const editKey = t.editKey && !fresh ? t.editKey : (await api(`/api/admin/teams/${t.id}/key`, { method: 'POST' })).editKey;
+      await navigator.clipboard.writeText(`${window.location.origin}/team-edit/${editKey}`);
+      setCopied(t.id); setTimeout(() => setCopied(0), 1500);
+      if (editKey !== t.editKey) run('/api/admin/teams', 'GET');
+    } catch (ex) { ex.status === 401 ? onAuthFail() : window.alert(ex.message); }
+  };
 
   return (
     <>
@@ -235,7 +246,7 @@ function Teams({ onAuthFail }) {
       </form>
       {err && <p className="adm-error">{err}</p>}
       <table className="adm-table">
-        <thead><tr><th>팀</th><th>출연</th><th>지난 출연</th><th>다음 출연</th><th>멤버</th><th>메모</th><th></th></tr></thead>
+        <thead><tr><th>팀</th><th>출연</th><th>지난 출연</th><th>다음 출연</th><th>멤버</th><th>소개 페이지</th><th>메모</th><th></th></tr></thead>
         <tbody>
           {shown.map(t => (
             <tr key={t.id}>
@@ -244,11 +255,17 @@ function Teams({ onAuthFail }) {
               <td data-label="지난 출연" className="adm-dim">{t.last || ''}</td>
               <td data-label="다음 출연">{t.next || ''}</td>
               <td data-label="멤버">{t.members.map(m => m.leader ? `${m.name}(리더)` : m.name).join(', ')}</td>
+              <td data-label="소개 페이지">
+                {(t.intro || t.videos !== '[]') ? <a href={`/teams/${t.id}`} target="_blank" rel="noreferrer">보기</a> : <span className="adm-dim">비어 있음</span>}
+                {' '}<button className="adm-copy" onClick={() => copyKey(t, false)}>{copied === t.id ? '복사됨' : t.editKey ? '수정 링크 복사' : '수정 링크 만들기'}</button>
+                {t.editKey && <button className="adm-copy" onClick={() => copyKey(t, true)} title="예전 링크를 못 쓰게 하고 새로 만듦">재발급</button>}
+                <label className="adm-dim"><input type="checkbox" checked={!!t.hidden} onChange={e => run(`/api/admin/teams/${t.id}`, 'PATCH', { hidden: e.target.checked ? 1 : 0 })} /> 숨김</label>
+              </td>
               <td data-label="메모"><MemoInput value={t.memo} onSave={memo => run(`/api/admin/teams/${t.id}`, 'PATCH', { memo })} /></td>
               <td className="adm-act"><button className="adm-del" onClick={() => remove(t)} title="삭제">✕</button></td>
             </tr>
           ))}
-          {shown.length === 0 && <tr><td colSpan={7} className="adm-empty">팀 없음</td></tr>}
+          {shown.length === 0 && <tr><td colSpan={8} className="adm-empty">팀 없음</td></tr>}
         </tbody>
       </table>
     </>

@@ -5,7 +5,7 @@ import { PROJECT_LINKS } from './InfoPage';
 
 // 공연 일정·라인업. 데이터는 관리자 공연 탭(/api/events) — 여기엔 손으로 적지 않음
 const today = () => new Date().toLocaleDateString('sv-SE');
-const fmt = d => { const x = new Date(`${d}T00:00`); return `${x.getMonth() + 1}. ${x.getDate()} (${'일월화수목금토'[x.getDay()]})`; };
+export const fmt = d => { const x = new Date(`${d}T00:00`); return `${x.getMonth() + 1}. ${x.getDate()} (${'일월화수목금토'[x.getDay()]})`; };
 
 function EventList({ events }) {
   return (
@@ -19,7 +19,9 @@ function EventList({ events }) {
               <b>{PROJECT_LINKS[ev.date] ? <Link to={PROJECT_LINKS[ev.date]} className="timeline-link">{ev.title}</Link> : ev.title}</b>
               {ev.place && ` · ${ev.place}`}
             </p>
-            {ev.teams.length > 0 && <p className="schedule-lineup">{ev.teams.map(t => t.name).join(' · ')}</p>}
+            {/* 소개를 채운 팀만 링크(page). 빈 팀 페이지로 보내지 않음 */}
+            {ev.teams.length > 0 && <p className="schedule-lineup">{ev.teams.map((t, i) => <span key={t.id}>{i > 0 && ' · '}
+              {t.page ? <Link to={`/teams/${t.id}`} className="timeline-link">{t.name}</Link> : t.name}</span>)}</p>}
             {ev.note && <p className="schedule-note">{ev.note}</p>}
           </div>
         </article>

@@ -93,6 +93,12 @@ const memberCols = db.prepare('PRAGMA table_info(members)').all().map(c => c.nam
 if (!memberCols.includes('leader')) db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
 // 신청자가 적은 band(자유 글자)는 그대로 두고, 관리자가 실제 팀에 연결
 if (!memberCols.includes('teamId')) db.exec('ALTER TABLE members ADD COLUMN teamId INTEGER REFERENCES teams(id) ON DELETE SET NULL');
+// 팀 소개 페이지(2026-10-30). 팀이 수정 링크(editKey)로 직접 고치고 바로 공개, 관리자는 숨김만. 개인정보 칸은 두지 않음
+const teamCols = db.prepare('PRAGMA table_info(teams)').all().map(c => c.name);
+for (const [c, def] of [['genre', "TEXT NOT NULL DEFAULT ''"], ['intro', "TEXT NOT NULL DEFAULT ''"],
+  ['videos', "TEXT NOT NULL DEFAULT '[]'"], ['editKey', 'TEXT'], ['hidden', 'INTEGER NOT NULL DEFAULT 0']])
+  if (!teamCols.includes(c)) db.exec(`ALTER TABLE teams ADD COLUMN ${c} ${def}`);
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS teams_editKey ON teams(editKey)');
 
 // 보유기간 경과분 자동 파기(개인정보처리방침 3절과 같은 숫자). 합류한 멤버는 활동 종료·철회 때 관리자가 삭제
 function purgeExpired() {
@@ -295,9 +301,50 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
 // 공연 일정 + 라인업(팀 이름만). 공개 일정 페이지와 관리자 공연 탭이 같이 씀. 라인업 순서 = 넣은 순서(공지 순서)
 app.get('/api/events', (req, res) => {
   const events = db.prepare('SELECT * FROM events ORDER BY date, time').all();
-  const lineup = db.prepare('SELECT et.eventId, t.id, t.name FROM event_teams et JOIN teams t ON t.id = et.teamId ORDER BY et.rowid').all();
-  for (const e of events) e.teams = lineup.filter(l => l.eventId === e.id).map(({ id, name }) => ({ id, name }));
+  // page = 소개 페이지로 링크할지(숨김 아니고 채운 내용이 있을 때)
+  const lineup = db.prepare(`SELECT et.eventId, t.id, t.name, (t.hidden = 0 AND (t.intro != '' OR t.videos != '[]')) AS page
+    FROM event_teams et JOIN teams t ON t.id = et.teamId ORDER BY et.rowid`).all();
+  for (const e of events) e.teams = lineup.filter(l => l.eventId === e.id).map(({ id, name, page }) => ({ id, name, page: !!page }));
   res.json(events);
+});
+
+// 팀 소개 페이지. 숨긴 팀은 없는 것처럼 404. 출연 이력은 라인업에서
+function publicTeam(id) {
+  const t = db.prepare('SELECT id, name, genre, intro, videos FROM teams WHERE id = ? AND hidden = 0').get(id);
+  if (!t) return null;
+  t.videos = JSON.parse(t.videos);
+  t.events = db.prepare(`SELECT e.id, e.date, e.time, e.title, e.place FROM event_teams et JOIN events e ON e.id = et.eventId
+    WHERE et.teamId = ? ORDER BY e.date DESC, e.time DESC`).all(id);
+  return t;
+}
+app.get('/api/teams/:id', (req, res) => {
+  const t = publicTeam(parseInt(req.params.id));
+  t ? res.json(t) : res.status(404).json({ error: '없는 팀입니다.' });
+});
+
+// 팀이 수정 링크로 직접 고침. 로그인 대신 링크(관리자가 발급·재발급). 칸은 장르·소개·유튜브만 → 개인정보를 받을 자리가 없음
+const MAX_VIDEOS = 6;
+// 유튜브 주소 → 영상 id(11자). watch?v= · youtu.be/ · shorts/ · live/ · embed/
+const ytId = u => (String(u).trim().match(/^(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([\w-]{11})(?![\w-])/) || [])[1];
+const teamByKey = key => /^[a-f0-9]{32}$/.test(key) && db.prepare('SELECT * FROM teams WHERE editKey = ?').get(key);
+app.get('/api/team-edit/:key', (req, res) => {
+  const t = teamByKey(req.params.key);
+  if (!t) return res.status(404).json({ error: '링크가 맞지 않습니다. 운영진에게 새 링크를 받아주세요.' });
+  res.json({ id: t.id, name: t.name, genre: t.genre, intro: t.intro, hidden: !!t.hidden, videos: JSON.parse(t.videos).map(id => `https://youtu.be/${id}`) });
+});
+app.put('/api/team-edit/:key', rateLimit(30, 60 * 60 * 1000), (req, res) => {
+  const t = teamByKey(req.params.key);
+  if (!t) return res.status(404).json({ error: '링크가 맞지 않습니다. 운영진에게 새 링크를 받아주세요.' });
+  const genre = String(req.body.genre || '').trim().slice(0, 50);
+  const intro = String(req.body.intro || '').trim().slice(0, 2000);
+  const urls = (Array.isArray(req.body.videos) ? req.body.videos : []).map(u => String(u).trim()).filter(Boolean);
+  const bad = urls.find(u => !ytId(u));
+  if (bad) return res.status(400).json({ error: `유튜브 주소가 아닙니다: ${bad.slice(0, 100)}` });
+  const videos = [...new Set(urls.map(ytId))];
+  if (videos.length > MAX_VIDEOS) return res.status(400).json({ error: `영상은 ${MAX_VIDEOS}개까지입니다.` });
+  db.prepare('UPDATE teams SET genre = ?, intro = ?, videos = ? WHERE id = ?').run(genre, intro, JSON.stringify(videos), t.id);
+  res.json({ ok: true });
+  notify(`팀 소개 수정: ${t.name}\nhttps://kband.co.kr/teams/${t.id}`); // 바로 공개라 운영진이 보고 이상하면 숨김
 });
 
 // 30회: 공연장 와이파이처럼 한 IP를 여럿이 쓰는 현장 가입 대비. 장난은 이름·이메일 검사와 연락처 중복이 거름
@@ -440,6 +487,7 @@ function patchRoute(table, cols, statuses) {
       if (next.teamId && !db.prepare('SELECT 1 FROM teams WHERE id = ?').get(next.teamId)) return res.status(400).json({ error: '없는 팀입니다.' });
     }
     if (table === 'teams' && !next.name) return res.status(400).json({ error: '팀 이름이 비었습니다.' });
+    if (table === 'teams') next.hidden = Number(next.hidden) ? 1 : 0;
     if (table === 'events' && (!isDate(next.date) || !next.title)) return res.status(400).json({ error: '날짜와 제목은 필수입니다.' });
     if (table === 'reservations') {
       next.roomId = parseInt(next.roomId);
@@ -499,7 +547,13 @@ app.post('/api/admin/teams', need('events'), (req, res) => {
   if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return res.status(409).json({ error: '같은 이름의 팀이 있습니다.' });
   res.status(201).json({ id: teamIdByName(name) });
 });
-app.patch('/api/admin/teams/:id', need('events'), patchRoute('teams', ['name', 'memo']));
+app.patch('/api/admin/teams/:id', need('events'), patchRoute('teams', ['name', 'memo', 'hidden']));
+// 수정 링크 발급·재발급. 새로 만들면 예전 링크는 바로 안 먹음(팀원이 바뀌었거나 링크가 샜을 때)
+app.post('/api/admin/teams/:id/key', need('events'), (req, res) => {
+  const editKey = crypto.randomBytes(16).toString('hex');
+  const r = db.prepare('UPDATE teams SET editKey = ? WHERE id = ?').run(editKey, parseInt(req.params.id));
+  r.changes ? res.json({ editKey }) : res.status(404).json({ error: '없는 팀입니다.' });
+});
 app.delete('/api/admin/teams/:id', need('events'), (req, res) => {
   db.prepare('DELETE FROM teams WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
@@ -538,8 +592,7 @@ const PAGES = require('./src/data/pages.json');
 const SITE = 'https://kband.co.kr';
 const SUFFIX = ' — 음진인 협동조합';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-function renderPage(tpl, key) {
-  const p = PAGES[key];
+function renderPage(tpl, key, p = PAGES[key]) {
   const title = !p ? '페이지를 찾을 수 없습니다' + SUFFIX : key === '/' ? p.title : p.title + SUFFIX;
   const desc = (p || PAGES['/']).desc;
   const links = Object.entries(PAGES).map(([k, v]) => `<a href="${k}">${esc(v.title)}</a>`).join(' · ');
@@ -555,7 +608,8 @@ function renderPage(tpl, key) {
 
 app.get('/sitemap.xml', (req, res) => {
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + Object.keys(PAGES).map(k => `  <url><loc>${SITE}${k}</loc></url>`).join('\n') + '\n</urlset>\n');
+    + [...Object.keys(PAGES), ...db.prepare(`SELECT id FROM teams WHERE hidden = 0 AND (intro != '' OR videos != '[]')`).all().map(t => `/teams/${t.id}`)]
+      .map(k => `  <url><loc>${SITE}${k}</loc></url>`).join('\n') + '\n</urlset>\n');
 });
 
 // ---------- static (build/가 있을 때만) ----------
@@ -566,6 +620,14 @@ if (fs.existsSync(BUILD_DIR)) {
     const key = req.path.replace(/\/+$/, '') || '/';
     if (key === '/admin' || key.startsWith('/admin/'))
       return res.set('X-Robots-Tag', 'noindex').type('html').send(tpl);
+    if (key.startsWith('/team-edit/')) // 수정 링크 = 비밀 주소. 색인 금지
+      return res.set('X-Robots-Tag', 'noindex').type('html').send(renderPage(tpl, key, { title: '팀 소개 수정', desc: '음진인 출연 팀 소개 수정' }));
+    const tm = key.match(/^\/teams\/(\d+)$/);
+    if (tm) { // 카톡·검색 미리보기에 팀 이름·소개
+      const t = publicTeam(Number(tm[1]));
+      const p = t && { title: t.name, desc: [t.genre, t.intro.replace(/\s+/g, ' ').slice(0, 100)].filter(Boolean).join(' · ') || '음진인 공연 출연 팀' };
+      return res.status(t ? 200 : 404).type('html').send(renderPage(tpl, key, p));
+    }
     // 목록에 없는 주소는 404 상태로(화면은 앱의 NotFound). 검색엔진이 없는 페이지를 색인하지 않게
     res.status(PAGES[key] ? 200 : 404).type('html').send(renderPage(tpl, key));
   });
