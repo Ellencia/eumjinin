@@ -3,6 +3,30 @@
 React(CRA) 프론트 + Express 백엔드 한 프로세스. 데이터는 `data/kband.db`(SQLite, node:sqlite 내장) 하나.
 Node 22.13 이상 필요.
 
+## 상태
+
+**어디까지 됐나** (회차 없음, 기능 단위. 작업 트리 깨끗, master = origin/master)
+
+| 기능 | 마지막 커밋 | 서버 스모크 시험 |
+| --- | --- | --- |
+| 운영진 계정(역할 3단계)·처리방침 6·11절 개정 | e4055b3 (10-30) | test_api.js 포함 |
+| 비상 초기화 `reset_admin.js` | 2f79cd8 (10-30) | test_api.js 포함 |
+| 관리자 화면 폰 대응(720px 이하 카드) | b710878 (10-26) | 없음(화면) |
+| 팀·공연 일정(/admin 탭 + 공개 /schedule) | 7bee8cb (10-25) | test_api.js 포함 |
+
+`node test_api.js` → `ALL OK` (10-30 실행). 로컬 `build/`(10-30 22:45)는 프론트 소스 최종 수정(Admin.js 22:39)보다 새것이지만, 서버는 `deploy.sh`가 git pull 후 다시 빌드하므로 로컬 build는 배포와 무관.
+운영 서버: 2f79cd8까지 배포(10-30 서버 `git log -1`). 운영 DB 팀 32·공연 16·라인업 32(10-30 sqlite3 조회, 10-26 시드).
+
+**다음**
+1. 운영진 계정 발급, 대표관리자 1명 더 두기(관리자 화면 계정 탭)
+2. 미확인: 그다음 개발 작업
+
+**하면 안 되는 것**
+- 처리방침과 맞물린 동작(파기 기간·세션 60분·역할·접속기록)을 `Privacy.js` 수정 없이 바꾸기. 이전 방침은 `PREVIOUS`에 남긴다
+- 운영진 계정 삭제(끄기만 함), 마지막 대표관리자 끄기
+- `ROOM_NAMES`를 `src/data/spaces.js`와 다르게 두기, 운영에서 HTTPS 없이 `NODE_ENV=production`
+- 서버에서 직접 코드 수정: `deploy.sh`는 `git pull --ff-only`라 깨짐. 커밋·푸시 후 배포
+
 ## 로컬 개발
 
 ```bash
