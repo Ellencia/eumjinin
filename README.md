@@ -54,7 +54,7 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 
 - 자동 파기(서버 시작 시 + 매일): 합류 아닌 멤버 신청은 접수 1년, 예약은 이용일 1년, 관리자 접속기록은 2년 지나면 삭제. `PRAGMA secure_delete`로 지운 자리를 덮어씀
 - 관리자 세션: 60분 요청이 없으면 만료
-- 운영진 계정(`admins`, /admin "계정" 탭): 역할 3단계 — 대표관리자(전부), 운영진(공연 편집 + 멤버·예약 열람, 상태·메모·팀·리더만 수정, 삭제 불가), 공연 담당(팀·공연만, 개인정보 못 봄). 역할 정의는 `server.js` `ROLES`. 계정은 지우지 않고 끔(끄면 즉시 로그아웃)
+- 운영진 계정(`admins`, /admin "계정" 탭): 역할 3단계 — 대표관리자(전부), 운영진(공연 편집 + 멤버·예약 열람, 상태·메모·팀·리더만 수정, 삭제 불가), 공연 담당(팀·공연만, 개인정보 못 봄). 역할 정의는 `server.js` `ROLES`. 계정은 지우지 않고 끔(끄면 즉시 로그아웃). 운영진 비밀번호 분실 = 대표관리자가 계정 탭에서 초기화. 대표관리자가 모두 잊었으면 서버에서 `runuser -u kband -- node /srv/kband/reset_admin.js <아이디>`(임의 비밀번호 출력, 꺼진 계정은 다시 켬, 아이디 없이 실행하면 목록)
 - 관리자 접속기록 `admin_log`(로그인 시도 포함, `adminId` = 누가. 2026-10-30 이전 기록은 NULL). 월 1회 점검:
   `ssh root@158.247.204.136 "sqlite3 /srv/kband/data/kband.db \"SELECT l.at, a.username, l.ip, l.method, l.path, l.status FROM admin_log l LEFT JOIN admins a ON a.id = l.adminId WHERE l.at > datetime('now','-1 month') ORDER BY l.at\""`
 - 전송량(월 한도 대비): 서버에 vnstat(2026-10-25 설치, 그 이후분만 집계). 월별은 `ssh root@158.247.204.136 vnstat -m`, 최근 30일 일별은 `vnstat -d`. tx가 방문자에게 나간 양. 공식 사용량·한도는 Vultr 콘솔 인스턴스 > Usage Graphs

@@ -219,8 +219,13 @@ async function main() {
            INSERT INTO reservations (roomId, date, startTime, endTime, name, phone) VALUES (3,'2020-01-01','10:00','11:00','옛예약','010-0000-0003');`);
   srv.kill();
   await new Promise(r => srv.once('exit', r));
+  // 비상 초기화: 꺼 둔 staff1도 다시 켜지고 새 비밀번호로 로그인돼야 함
+  const out = require('child_process').execFileSync(process.execPath, ['reset_admin.js', 'staff1'],
+    { cwd: __dirname, env: { ...process.env, DB_FILE: path.join(tmp, 't.db') }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const newPw = out.match(/새 비밀번호: (\S+)/)[1];
   const srv2 = spawn(process.execPath, ['server.js'], { cwd: __dirname, env: { ...process.env, PORT, DB_FILE: path.join(tmp, 't.db'), ADMIN_PASSWORD: PW }, stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise(r => srv2.stdout.on('data', d => String(d).includes('실행 중') && r()));
+  assert.equal((await req('POST', '/api/admin/login', { username: 'staff1', password: newPw }, false)).status, 200, 'reset_admin.js 비상 초기화');
   srv2.kill();
   const names = db.prepare(`SELECT name FROM members WHERE name LIKE '옛%' UNION ALL SELECT name FROM reservations WHERE name LIKE '옛%'`).all().map(x => x.name);
   assert.deepEqual(names, ['옛합류'], '1년 지난 미합류 신청·예약 파기, 합류 멤버 유지');
