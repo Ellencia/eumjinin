@@ -28,7 +28,7 @@ async function req(method, p, body, auth = true) {
 }
 
 async function main() {
-  await new Promise(r => srv.stdout.once('data', r));
+  await new Promise(r => srv.stdout.on('data', d => String(d).includes('실행 중') && r())); // 첫 계정 생성 로그가 먼저 나옴
 
   // 공개 예약
   let r = await req('POST', '/api/reservations', { roomId: 3, date: '2026-11-01', startTime: '20:00', endTime: '26:00', name: '테스트', phone: '01012345678', consent: true, age14: true });
@@ -78,9 +78,9 @@ async function main() {
   // 관리자 인증
   r = await req('GET', '/api/admin/reservations');
   assert.equal(r.status, 401, '비로그인 401');
-  r = await req('POST', '/api/admin/login', { password: 'wrong' });
+  r = await req('POST', '/api/admin/login', { username: 'admin', password: 'wrong' });
   assert.equal(r.status, 401, '틀린 비밀번호');
-  r = await req('POST', '/api/admin/login', { password: PW });
+  r = await req('POST', '/api/admin/login', { username: 'admin', password: PW });
   assert.equal(r.status, 200, '로그인');
   assert.ok(cookie.startsWith('kband_admin='), '쿠키 발급');
 
@@ -135,6 +135,52 @@ async function main() {
   assert.equal(r.status, 200);
   r = await req('GET', '/api/admin/reservations?from=2026-11-01&to=2026-11-30&roomId=3');
   assert.equal(r.data.length, 1, '삭제 반영');
+
+  // 운영진 계정·역할
+  const me = (await req('GET', '/api/admin/me')).data;
+  assert.equal(me.role, 'owner', 'ADMIN_PASSWORD로 첫 대표관리자 생성');
+  const SPW = 'staff-pw-1234', EPW = 'event-pw-1234';
+  assert.equal((await req('POST', '/api/admin/accounts', { username: 'staff1', name: '운영', role: 'staff', password: 'short' })).status, 400, '짧은 비밀번호 거부');
+  assert.equal((await req('POST', '/api/admin/accounts', { username: 'staff1', name: '운영', role: 'nope', password: SPW })).status, 400, '없는 역할 거부');
+  const staffId = (await req('POST', '/api/admin/accounts', { username: 'staff1', name: '운영', role: 'staff', password: SPW })).data.id;
+  assert.equal((await req('POST', '/api/admin/accounts', { username: 'staff1', name: 'x', role: 'staff', password: SPW })).status, 409, '아이디 중복');
+  await req('POST', '/api/admin/accounts', { username: 'event1', name: '공연', role: 'event', password: EPW });
+  assert.equal((await req('PATCH', `/api/admin/accounts/${me.id}`, { role: 'staff' })).status, 400, '마지막 대표관리자 강등 금지');
+  assert.equal((await req('PATCH', `/api/admin/accounts/${me.id}`, { active: false })).status, 400, '마지막 대표관리자 끄기 금지');
+  const ownerCookie = cookie;
+
+  assert.equal((await req('POST', '/api/admin/login', { username: 'staff1', password: SPW })).status, 200, '운영진 로그인');
+  const staffCookie = cookie;
+  assert.equal((await req('GET', '/api/admin/members')).status, 200, '운영진 멤버 열람');
+  assert.equal((await req('PATCH', `/api/admin/members/${memId}`, { memo: '운영진 메모' })).data.memo, '운영진 메모', '운영진 메모 수정');
+  assert.equal((await req('PATCH', `/api/admin/members/${memId}`, { memo: 'x', phone: '010-0000-0000' })).status, 403, '운영진 연락처 수정 금지');
+  assert.equal((await req('DELETE', `/api/admin/members/${memId}`)).status, 403, '운영진 멤버 삭제 금지');
+  assert.equal((await req('DELETE', `/api/admin/reservations/${resvId}`)).status, 403, '운영진 예약 삭제 금지');
+  assert.equal((await req('GET', '/api/admin/accounts')).status, 403, '운영진 계정 관리 금지');
+  assert.equal((await req('POST', '/api/admin/events', { date: '2099-12-06', title: '정기모임' })).status, 201, '운영진 공연 편집');
+
+  assert.equal((await req('POST', '/api/admin/login', { username: 'event1', password: EPW })).status, 200, '공연 담당 로그인');
+  for (const p of ['/api/admin/members', '/api/admin/reservations', '/api/admin/invite'])
+    assert.equal((await req('GET', p)).status, 403, `공연 담당 개인정보 차단: ${p}`);
+  await req('PATCH', `/api/admin/members/${memId}`, { teamId: other });
+  r = await req('GET', '/api/admin/teams');
+  assert.equal(r.status, 200); assert.ok(r.data.every(x => x.members.length === 0), '공연 담당에겐 팀 멤버 이름도 안 보냄');
+  assert.equal((await req('POST', '/api/admin/teams', { name: '새팀' })).status, 201, '공연 담당 팀 추가');
+  const eventCookie = cookie;
+
+  cookie = ownerCookie;
+  assert.equal((await req('GET', '/api/admin/teams')).data.find(x => x.id === other).members.length, 0, '공연 담당의 멤버 팀 변경은 403이었음');
+  assert.equal((await req('PATCH', `/api/admin/accounts/${staffId}`, { active: false })).status, 200, '운영진 끄기');
+  cookie = staffCookie;
+  assert.equal((await req('GET', '/api/admin/members')).status, 401, '꺼진 계정은 즉시 로그아웃');
+  assert.equal((await req('POST', '/api/admin/login', { username: 'staff1', password: SPW })).status, 401, '꺼진 계정 로그인 불가');
+  cookie = ownerCookie;
+  assert.equal((await req('POST', '/api/admin/me/password', { current: 'wrong', next: 'new-owner-pw-1' })).status, 400, '현재 비밀번호 확인');
+  assert.equal((await req('POST', '/api/admin/me/password', { current: PW, next: 'new-owner-pw-1' })).status, 200, '비밀번호 변경');
+  assert.equal((await req('GET', '/api/admin/me')).status, 200, '바꾼 창은 로그인 유지');
+  cookie = eventCookie;
+  assert.equal((await req('GET', '/api/admin/teams')).status, 200, '남의 비밀번호 변경은 다른 계정 세션에 영향 없음');
+  cookie = ownerCookie;
   r = await req('POST', '/api/admin/logout');
   r = await req('GET', '/api/admin/me');
   assert.equal(r.status, 401, '로그아웃 후 401');
@@ -165,6 +211,8 @@ async function main() {
   const db = new DatabaseSync(path.join(tmp, 't.db'));
   const logged = db.prepare(`SELECT status FROM admin_log WHERE path = '/api/admin/login'`).all().map(x => x.status);
   assert.ok(logged.includes(200) && logged.includes(401) && logged.includes(429), '로그인 성공·실패·제한이 접속기록에 남음');
+  const who = db.prepare(`SELECT a.username FROM admin_log l JOIN admins a ON a.id = l.adminId WHERE l.method = 'DELETE' AND l.status = 403`).all().map(x => x.username);
+  assert.ok(who.includes('staff1'), '접속기록에 누가(계정) 남음');
 
   // 보유기간 자동 파기(서버 시작 시 실행): 1년 지난 미합류 신청·예약은 지우고, 합류 멤버는 남김
   db.exec(`INSERT INTO members (name, email, phone, status, createdAt) VALUES ('옛신청','o@x.com','010-0000-0001','보류','2020-01-01T00:00:00.000Z'), ('옛합류','o@x.com','010-0000-0002','합류','2020-01-01T00:00:00.000Z');

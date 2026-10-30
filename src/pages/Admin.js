@@ -46,24 +46,26 @@ function useList(path, onAuthFail) {
 }
 
 function Login({ onDone }) {
+  const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
   const submit = async e => {
     e.preventDefault();
-    try { await api('/api/admin/login', { method: 'POST', body: JSON.stringify({ password: pw }) }); onDone(); }
+    try { await api('/api/admin/login', { method: 'POST', body: JSON.stringify({ username: id, password: pw }) }); onDone(); }
     catch (ex) { setErr(ex.message); }
   };
   return (
     <form className="adm-login" onSubmit={submit}>
       <h1>kband 관리자</h1>
-      <input type="password" autoFocus placeholder="비밀번호" value={pw} onChange={e => setPw(e.target.value)} />
+      <input autoFocus autoComplete="username" autoCapitalize="none" placeholder="아이디" value={id} onChange={e => setId(e.target.value)} />
+      <input type="password" autoComplete="current-password" placeholder="비밀번호" value={pw} onChange={e => setPw(e.target.value)} />
       <button className="btn btn-primary">로그인</button>
       {err && <p className="adm-error">{err}</p>}
     </form>
   );
 }
 
-function Reservations({ onAuthFail }) {
+function Reservations({ onAuthFail, full }) {
   const [f, setF] = useState({ from: todayStr(), to: todayStr(30), roomId: '', status: '' });
   const [rows, setRows] = useState([]);
   const [err, setErr] = useState('');
@@ -107,7 +109,7 @@ function Reservations({ onAuthFail }) {
               <td data-label="상태"><select value={r.status} onChange={e => patch(r.id, { status: e.target.value })}>{RESV_STATUS.map(s => <option key={s}>{s}</option>)}</select></td>
               <td data-label="메모"><MemoInput value={r.memo} onSave={memo => patch(r.id, { memo })} /></td>
               <td data-label="신청일" className="adm-dim">{fmtDateTime(r.createdAt)}</td>
-              <td className="adm-act"><button className="adm-del" onClick={() => remove(r.id)} title="삭제">✕</button></td>
+              <td className="adm-act">{full && <button className="adm-del" onClick={() => remove(r.id)} title="삭제">✕</button>}</td>
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={9} className="adm-empty">예약 없음</td></tr>}
@@ -141,7 +143,7 @@ function inviteText(m, inv) {
   return lines.join('\n');
 }
 
-function Members({ onAuthFail }) {
+function Members({ onAuthFail, full }) {
   const [f, setF] = useState({ q: '', status: '' });
   const [rows, setRows] = useState([]);
   const [err, setErr] = useState('');
@@ -204,7 +206,7 @@ function Members({ onAuthFail }) {
               <td data-label="안내문"><button className="adm-copy" onClick={() => copy(m)} disabled={!inv.band && !inv.chat}
                 title={inv.band || inv.chat ? '밴드 링크(리더면 오픈채팅까지) 안내문을 클립보드로' : '서버 .env에 BAND_INVITE_URL 등이 없음'}>
                 {copied === m.id ? '복사됨' : '복사'}</button></td>
-              <td className="adm-act"><button className="adm-del" onClick={() => remove(m.id)} title="삭제">✕</button></td>
+              <td className="adm-act">{full && <button className="adm-del" onClick={() => remove(m.id)} title="삭제">✕</button>}</td>
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={17} className="adm-empty">신청 없음</td></tr>}
@@ -305,35 +307,107 @@ function Events({ onAuthFail }) {
   );
 }
 
+// 내 비밀번호 변경(전원) + 운영진 계정 관리(accounts 권한). 계정은 지우지 않고 끔 — 접속기록의 "누가"가 남도록
+function Accounts({ me, onAuthFail }) {
+  const manage = me.perms.includes('accounts');
+  const { rows, err, run } = useList(manage ? '/api/admin/accounts' : '/api/admin/roles', onAuthFail);
+  const [roles, setRoles] = useState([]);
+  useEffect(() => { api('/api/admin/roles').then(setRoles).catch(() => {}); }, []);
+  const [pw, setPw] = useState({ current: '', next: '' });
+  const [msg, setMsg] = useState('');
+  const changePw = async e => {
+    e.preventDefault();
+    try { await api('/api/admin/me/password', { method: 'POST', body: JSON.stringify(pw) }); setPw({ current: '', next: '' }); setMsg('비밀번호를 바꿨습니다. 다른 기기의 로그인은 끊겼습니다.'); }
+    catch (ex) { setMsg(ex.message); }
+  };
+  const empty = { username: '', name: '', role: 'staff', password: '' };
+  const [f, setF] = useState(empty);
+  const add = async e => { e.preventDefault(); await run('/api/admin/accounts', 'POST', f); setF(empty); };
+  const reset = a => {
+    const password = window.prompt(`${a.name}(${a.username}) 새 비밀번호 (10자 이상). 그 사람의 로그인은 끊깁니다.`);
+    if (password) run(`/api/admin/accounts/${a.id}`, 'PATCH', { password });
+  };
+
+  return (
+    <>
+      <form className="adm-filters" onSubmit={changePw}>
+        <strong>{me.name} ({me.username} · {me.roleLabel})</strong>
+        <input type="password" autoComplete="current-password" placeholder="현재 비밀번호" value={pw.current} onChange={e => setPw({ ...pw, current: e.target.value })} />
+        <input type="password" autoComplete="new-password" placeholder="새 비밀번호 (10자 이상)" value={pw.next} onChange={e => setPw({ ...pw, next: e.target.value })} />
+        <button className="adm-copy">비밀번호 변경</button>
+        {msg && <span className="adm-dim">{msg}</span>}
+      </form>
+      {manage && <>
+        <form className="adm-filters" onSubmit={add}>
+          <input required placeholder="아이디 (영문 소문자)" autoCapitalize="none" value={f.username} onChange={e => setF({ ...f, username: e.target.value })} />
+          <input required placeholder="이름" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />
+          <select value={f.role} onChange={e => setF({ ...f, role: e.target.value })}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select>
+          <input required type="password" autoComplete="new-password" placeholder="첫 비밀번호 (10자 이상)" value={f.password} onChange={e => setF({ ...f, password: e.target.value })} />
+          <button className="adm-copy">계정 추가</button>
+          <span className="adm-count">{rows.filter(a => a.active).length}명 활성</span>
+        </form>
+        {err && <p className="adm-error">{err}</p>}
+        <p className="adm-dim">대표관리자 = 전부 · 운영진 = 공연 편집 + 멤버·예약 열람(상태·메모·팀·리더만 수정, 삭제 불가) · 공연 담당 = 팀·공연만(개인정보 못 봄)</p>
+        <table className="adm-table">
+          <thead><tr><th>아이디</th><th>이름</th><th>역할</th><th>사용</th><th>만든 날</th><th>비밀번호</th></tr></thead>
+          <tbody>
+            {rows.map(a => (
+              <tr key={a.id} className={a.active ? '' : 'adm-past'}>
+                <td data-label="아이디">{a.username}</td>
+                <td data-label="이름"><MemoInput value={a.name} placeholder="이름" className="adm-name" onSave={name => run(`/api/admin/accounts/${a.id}`, 'PATCH', { name })} /></td>
+                <td data-label="역할"><select value={a.role} onChange={e => run(`/api/admin/accounts/${a.id}`, 'PATCH', { role: e.target.value })}>
+                  {roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select></td>
+                <td data-label="사용"><input type="checkbox" checked={!!a.active} title="끄면 바로 로그아웃되고 다시 로그인 못 함"
+                  onChange={e => run(`/api/admin/accounts/${a.id}`, 'PATCH', { active: e.target.checked })} /></td>
+                <td data-label="만든 날" className="adm-dim">{fmtDateTime(a.createdAt)}</td>
+                <td data-label="비밀번호"><button className="adm-copy" onClick={() => reset(a)}>초기화</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>}
+    </>
+  );
+}
+
+const TABS = [
+  ['resv', '연습실 예약', 'people'],
+  ['members', '멤버 신청', 'people'],
+  ['teams', '팀', 'events'],
+  ['events', '공연', 'events'],
+  ['accounts', '계정', null], // 내 비밀번호 변경은 전원
+];
+
 function Admin() {
-  const [authed, setAuthed] = useState(null); // null = 확인 중
-  const [tab, setTab] = useState('resv');
-  const onAuthFail = useCallback(() => setAuthed(false), []);
+  const [me, setMe] = useState(undefined); // undefined = 확인 중, null = 로그인 필요
+  const [tab, setTab] = useState(null);
+  const onAuthFail = useCallback(() => setMe(null), []);
+  const loadMe = useCallback(() => api('/api/admin/me').then(setMe).catch(() => setMe(null)), []);
+  useEffect(() => { loadMe(); }, [loadMe]);
 
-  useEffect(() => { api('/api/admin/me').then(() => setAuthed(true)).catch(() => setAuthed(false)); }, []);
+  if (me === undefined) return null;
+  if (!me) return <Login onDone={loadMe} />;
 
-  if (authed === null) return null;
-  if (!authed) return <Login onDone={() => setAuthed(true)} />;
-
-  const logout = async () => { await api('/api/admin/logout', { method: 'POST' }); setAuthed(false); };
+  const tabs = TABS.filter(([, , perm]) => !perm || me.perms.includes(perm));
+  const cur = tabs.some(([k]) => k === tab) ? tab : tabs[0][0];
+  const full = me.perms.includes('people.full');
+  const logout = async () => { await api('/api/admin/logout', { method: 'POST' }); setMe(null); };
 
   return (
     <div className="adm">
       <header className="adm-header">
         <strong>kband 관리자</strong>
         <nav>
-          <button className={tab === 'resv' ? 'active' : ''} onClick={() => setTab('resv')}>연습실 예약</button>
-          <button className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>멤버 신청</button>
-          <button className={tab === 'teams' ? 'active' : ''} onClick={() => setTab('teams')}>팀</button>
-          <button className={tab === 'events' ? 'active' : ''} onClick={() => setTab('events')}>공연</button>
+          {tabs.map(([k, label]) => <button key={k} className={cur === k ? 'active' : ''} onClick={() => setTab(k)}>{label}</button>)}
         </nav>
-        <button className="adm-logout" onClick={logout}>로그아웃</button>
+        <button className="adm-logout" onClick={logout} title={`${me.name} · ${me.roleLabel}`}>로그아웃</button>
       </header>
       <main className="adm-main">
-        {tab === 'resv' && <Reservations onAuthFail={onAuthFail} />}
-        {tab === 'members' && <Members onAuthFail={onAuthFail} />}
-        {tab === 'teams' && <Teams onAuthFail={onAuthFail} />}
-        {tab === 'events' && <Events onAuthFail={onAuthFail} />}
+        {cur === 'resv' && <Reservations onAuthFail={onAuthFail} full={full} />}
+        {cur === 'members' && <Members onAuthFail={onAuthFail} full={full} />}
+        {cur === 'teams' && <Teams onAuthFail={onAuthFail} />}
+        {cur === 'events' && <Events onAuthFail={onAuthFail} />}
+        {cur === 'accounts' && <Accounts me={me} onAuthFail={onAuthFail} />}
       </main>
     </div>
   );

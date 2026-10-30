@@ -74,6 +74,20 @@ db.exec(`
   );
   PRAGMA foreign_keys = ON;
 `);
+// 운영진 계정(2026-10-30). 지우지 않고 active=0으로 끔 → 접속기록의 "누가"가 계속 풀림
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admins (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    username  TEXT NOT NULL UNIQUE,
+    name      TEXT NOT NULL,
+    role      TEXT NOT NULL,
+    pwHash    TEXT NOT NULL,
+    active    INTEGER NOT NULL DEFAULT 1,
+    createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+`);
+if (!db.prepare('PRAGMA table_info(admin_log)').all().some(c => c.name === 'adminId'))
+  db.exec('ALTER TABLE admin_log ADD COLUMN adminId INTEGER'); // 그 전 기록은 NULL(공용 비밀번호 시절)
 // 2026-10-18·20 추가 열. 기존 DB엔 ALTER로 (CREATE IF NOT EXISTS는 열을 안 늘림)
 const memberCols = db.prepare('PRAGMA table_info(members)').all().map(c => c.name);
 if (!memberCols.includes('leader')) db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
@@ -187,7 +201,35 @@ function rateLimit(max, windowMs) {
   };
 }
 
-// ponytail: 세션은 메모리 Map(토큰→마지막 요청 시각). 서버 재시작 = 전원 로그아웃, 관리자 한두 명이면 그걸로 충분
+// 역할 = 고정 3단계(안전성 확보조치 기준 제5조: 업무에 따라 접근권한 차등). 탭별 체크박스는 역할이 안 맞는 사람이 생기면
+//  events: 팀·공연·라인업 편집(개인정보 없음)
+//  people: 멤버 신청·예약 열람, 상태·메모·팀·리더만 수정, 합류 안내문
+//  people.full: 개인정보 항목 수정·삭제   accounts: 운영진 계정 관리
+const ROLES = {
+  owner: { label: '대표관리자', perms: ['events', 'people', 'people.full', 'accounts'] },
+  staff: { label: '운영진', perms: ['events', 'people'] },
+  event: { label: '공연 담당', perms: ['events'] },
+};
+const can = (admin, perm) => ROLES[admin.role]?.perms.includes(perm);
+const MIN_PW = 10;
+
+// 비밀번호 해시: scrypt(내장), "salt:hash" hex
+function hashPw(pw) {
+  const salt = crypto.randomBytes(16);
+  return `${salt.toString('hex')}:${crypto.scryptSync(String(pw), salt, 64).toString('hex')}`;
+}
+const DUMMY_HASH = hashPw(crypto.randomBytes(16)); // 없는 아이디도 같은 시간 들게(아이디 존재 여부 노출 방지)
+function checkPw(pw, stored) {
+  const [salt, hash] = stored.split(':');
+  return crypto.timingSafeEqual(crypto.scryptSync(String(pw), Buffer.from(salt, 'hex'), 64), Buffer.from(hash, 'hex'));
+}
+// 첫 대표관리자: 계정이 하나도 없을 때만 ADMIN_PASSWORD로 'admin' 생성. 그 뒤 ADMIN_PASSWORD는 안 씀
+if (!db.prepare('SELECT 1 FROM admins').get() && ADMIN_PASSWORD) {
+  db.prepare(`INSERT INTO admins (username, name, role, pwHash) VALUES ('admin', '대표관리자', 'owner', ?)`).run(hashPw(ADMIN_PASSWORD));
+  console.log("첫 대표관리자 계정 'admin' 생성(비밀번호 = ADMIN_PASSWORD). 로그인 뒤 비밀번호를 바꾸세요.");
+}
+
+// ponytail: 세션은 메모리 Map(토큰→{adminId, last}). 서버 재시작 = 전원 로그아웃, 운영진 열 명 안팎이면 그걸로 충분
 // 60분 동안 요청이 없으면 만료(안전성 확보조치 기준 제6조④: 일정 시간 업무 처리 없으면 접속 차단)
 const IDLE_MS = 60 * 60 * 1000;
 const sessions = new Map();
@@ -196,16 +238,19 @@ function getToken(req) {
   const m = (req.headers.cookie || '').match(new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]+)`));
   return m ? m[1] : null;
 }
+const dropSessions = adminId => { for (const [t, s] of sessions) if (s.adminId === adminId) sessions.delete(t); };
+// 계정은 요청마다 DB에서 다시 읽음 → 끄거나 역할을 바꾸면 다음 요청부터 바로 적용
 function requireAdmin(req, res, next) {
-  const token = getToken(req), last = sessions.get(token);
-  if (last && Date.now() - last < IDLE_MS) { sessions.set(token, Date.now()); return next(); }
-  sessions.delete(token);
-  res.status(401).json({ error: '로그인이 필요합니다.' });
+  const token = getToken(req), s = sessions.get(token);
+  const admin = s && Date.now() - s.last < IDLE_MS &&
+    db.prepare('SELECT id, username, name, role FROM admins WHERE id = ? AND active = 1').get(s.adminId);
+  if (!admin) { sessions.delete(token); return res.status(401).json({ error: '로그인이 필요합니다.' }); }
+  s.last = Date.now();
+  req.admin = admin;
+  next();
 }
-function safeEqual(a, b) {
-  const h = s => crypto.createHash('sha256').update(String(s)).digest();
-  return crypto.timingSafeEqual(h(a), h(b));
-}
+const need = perm => [requireAdmin, (req, res, next) =>
+  can(req.admin, perm) ? next() : res.status(403).json({ error: '권한이 없습니다.' })];
 
 // ---------- app ----------
 const app = express();
@@ -287,15 +332,17 @@ app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
 // ---------- admin ----------
 // 접속기록: 로그인 시도 포함 /api/admin 요청 전부. 점검은 README "관리자 접속기록"
 app.use('/api/admin', (req, res, next) => {
-  res.on('finish', () => db.prepare('INSERT INTO admin_log (ip, method, path, status) VALUES (?, ?, ?, ?)')
-    .run(req.ip || '', req.method, req.originalUrl.slice(0, 500), res.statusCode));
+  res.on('finish', () => db.prepare('INSERT INTO admin_log (ip, method, path, status, adminId) VALUES (?, ?, ?, ?, ?)')
+    .run(req.ip || '', req.method, req.originalUrl.slice(0, 500), res.statusCode, req.admin?.id ?? null));
   next();
 });
 app.post('/api/admin/login', rateLimit(10, 15 * 60 * 1000), (req, res) => {
-  if (!ADMIN_PASSWORD) return res.status(503).json({ error: 'ADMIN_PASSWORD가 설정되지 않았습니다.' });
-  if (!safeEqual(req.body.password || '', ADMIN_PASSWORD)) return res.status(401).json({ error: '비밀번호가 틀렸습니다.' });
+  const row = db.prepare('SELECT * FROM admins WHERE username = ? AND active = 1').get(String(req.body.username || '').trim());
+  const ok = checkPw(req.body.password || '', row ? row.pwHash : DUMMY_HASH);
+  if (!row || !ok) return res.status(401).json({ error: '아이디 또는 비밀번호가 틀렸습니다.' });
   const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, Date.now());
+  sessions.set(token, { adminId: row.id, last: Date.now() });
+  req.admin = row;
   res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 7 * 24 * 3600 * 1000 });
   res.json({ ok: true });
 });
@@ -304,10 +351,60 @@ app.post('/api/admin/logout', (req, res) => {
   res.clearCookie(COOKIE);
   res.json({ ok: true });
 });
-app.get('/api/admin/me', requireAdmin, (req, res) => res.json({ ok: true }));
-app.get('/api/admin/invite', requireAdmin, (req, res) => res.json(INVITE));
+app.get('/api/admin/me', requireAdmin, (req, res) =>
+  res.json({ ...req.admin, roleLabel: ROLES[req.admin.role]?.label, perms: ROLES[req.admin.role]?.perms || [] }));
+app.post('/api/admin/me/password', requireAdmin, rateLimit(10, 15 * 60 * 1000), (req, res) => {
+  const { pwHash } = db.prepare('SELECT pwHash FROM admins WHERE id = ?').get(req.admin.id);
+  if (!checkPw(req.body.current || '', pwHash)) return res.status(400).json({ error: '현재 비밀번호가 틀렸습니다.' });
+  if (String(req.body.next || '').length < MIN_PW) return res.status(400).json({ error: `새 비밀번호는 ${MIN_PW}자 이상이어야 합니다.` });
+  db.prepare('UPDATE admins SET pwHash = ? WHERE id = ?').run(hashPw(req.body.next), req.admin.id);
+  const token = getToken(req), mine = sessions.get(token);
+  dropSessions(req.admin.id); sessions.set(token, mine); // 다른 기기 로그인은 끊고 지금 창은 유지
+  res.json({ ok: true });
+});
 
-app.get('/api/admin/reservations', requireAdmin, (req, res) => {
+// 운영진 계정. 삭제 없음(끄기만). 마지막 활성 대표관리자는 끄거나 강등 못 함
+app.get('/api/admin/accounts', need('accounts'), (req, res) =>
+  res.json(db.prepare('SELECT id, username, name, role, active, createdAt FROM admins ORDER BY active DESC, id').all()));
+app.get('/api/admin/roles', requireAdmin, (req, res) =>
+  res.json(Object.entries(ROLES).map(([key, r]) => ({ key, label: r.label }))));
+app.post('/api/admin/accounts', need('accounts'), (req, res) => {
+  const username = String(req.body.username || '').trim(), name = String(req.body.name || '').trim().slice(0, 50);
+  if (!/^[a-z0-9_.-]{3,30}$/.test(username)) return res.status(400).json({ error: '아이디는 영문 소문자·숫자·_.- 3–30자입니다.' });
+  if (!name) return res.status(400).json({ error: '이름이 비었습니다.' });
+  if (!ROLES[req.body.role]) return res.status(400).json({ error: '없는 역할입니다.' });
+  if (String(req.body.password || '').length < MIN_PW) return res.status(400).json({ error: `비밀번호는 ${MIN_PW}자 이상이어야 합니다.` });
+  try {
+    const r = db.prepare('INSERT INTO admins (username, name, role, pwHash) VALUES (?, ?, ?, ?)').run(username, name, req.body.role, hashPw(req.body.password));
+    res.status(201).json({ id: Number(r.lastInsertRowid) });
+  } catch (e) { if (e.errcode === 2067) return res.status(409).json({ error: '같은 아이디가 있습니다.' }); throw e; }
+});
+app.patch('/api/admin/accounts/:id', need('accounts'), (req, res) => {
+  const id = parseInt(req.params.id);
+  const cur = db.prepare('SELECT * FROM admins WHERE id = ?').get(id);
+  if (!cur) return res.status(404).json({ error: '없는 계정입니다.' });
+  const next = { name: cur.name, role: cur.role, active: cur.active };
+  if ('name' in req.body) next.name = String(req.body.name || '').trim().slice(0, 50);
+  if ('role' in req.body) next.role = req.body.role;
+  if ('active' in req.body) next.active = req.body.active ? 1 : 0;
+  if (!next.name) return res.status(400).json({ error: '이름이 비었습니다.' });
+  if (!ROLES[next.role]) return res.status(400).json({ error: '없는 역할입니다.' });
+  const owners = db.prepare(`SELECT COUNT(*) AS n FROM admins WHERE role = 'owner' AND active = 1 AND id != ?`).get(id).n;
+  if (cur.role === 'owner' && cur.active && !(next.role === 'owner' && next.active) && owners === 0)
+    return res.status(400).json({ error: '마지막 대표관리자는 끄거나 역할을 바꿀 수 없습니다.' });
+  let pwHash = cur.pwHash;
+  if ('password' in req.body) {
+    if (String(req.body.password || '').length < MIN_PW) return res.status(400).json({ error: `비밀번호는 ${MIN_PW}자 이상이어야 합니다.` });
+    pwHash = hashPw(req.body.password);
+  }
+  db.prepare('UPDATE admins SET name = ?, role = ?, active = ?, pwHash = ? WHERE id = ?').run(next.name, next.role, next.active, pwHash, id);
+  if (!next.active || pwHash !== cur.pwHash) dropSessions(id); // 끄거나 비밀번호 초기화 = 그 사람 로그인 끊김
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/invite', need('people'), (req, res) => res.json(INVITE));
+
+app.get('/api/admin/reservations', need('people'), (req, res) => {
   const { from, to, roomId, status } = req.query;
   const where = [], args = [];
   if (isDate(from)) { where.push('date >= ?'); args.push(from); }
@@ -318,7 +415,7 @@ app.get('/api/admin/reservations', requireAdmin, (req, res) => {
   res.json(db.prepare(sql).all(...args));
 });
 
-app.get('/api/admin/members', requireAdmin, (req, res) => {
+app.get('/api/admin/members', need('people'), (req, res) => {
   const { q, status } = req.query;
   const where = [], args = [];
   if (q)      { where.push('(name LIKE ? OR phone LIKE ? OR band LIKE ? OR email LIKE ?)'); args.push(...Array(4).fill(`%${q}%`)); }
@@ -356,19 +453,29 @@ function patchRoute(table, cols, statuses) {
     res.json(db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id));
   };
 }
-app.patch('/api/admin/reservations/:id', requireAdmin,
-  patchRoute('reservations', ['roomId', 'date', 'startTime', 'endTime', 'name', 'phone', 'status', 'memo'], RESV_STATUS));
-app.patch('/api/admin/members/:id', requireAdmin,
-  patchRoute('members', ['name', 'email', 'phone', 'band', 'role', 'location', 'birth', 'genre', 'intro', 'leader', 'teamId', 'status', 'memo'], MEMBER_STATUS));
-app.delete('/api/admin/reservations/:id', requireAdmin, (req, res) => {
+// people 권한은 상태·메모(멤버는 팀·리더까지)만. 그 밖의 항목을 보내면 조용히 버리지 않고 403
+function limitCols(full, light) {
+  return (req, res, next) => {
+    if (can(req.admin, 'people.full')) return next();
+    const bad = Object.keys(req.body).filter(k => full.includes(k) && !light.includes(k));
+    bad.length ? res.status(403).json({ error: `권한이 없는 항목: ${bad.join(', ')}` }) : next();
+  };
+}
+const RESV_COLS = ['roomId', 'date', 'startTime', 'endTime', 'name', 'phone', 'status', 'memo'];
+const MEMBER_COLS = ['name', 'email', 'phone', 'band', 'role', 'location', 'birth', 'genre', 'intro', 'leader', 'teamId', 'status', 'memo'];
+app.patch('/api/admin/reservations/:id', need('people'), limitCols(RESV_COLS, ['status', 'memo']),
+  patchRoute('reservations', RESV_COLS, RESV_STATUS));
+app.patch('/api/admin/members/:id', need('people'), limitCols(MEMBER_COLS, ['status', 'memo', 'teamId', 'leader']),
+  patchRoute('members', MEMBER_COLS, MEMBER_STATUS));
+app.delete('/api/admin/reservations/:id', need('people.full'), (req, res) => {
   db.prepare('DELETE FROM reservations WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
-app.delete('/api/admin/members/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/members/:id', need('people.full'), (req, res) => {
   db.prepare('DELETE FROM members WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
 
 // 팀: 출연 이력은 따로 저장하지 않고 공연 라인업에서 셈(지난 공연·다음 공연). 연결된 멤버는 이름·리더 여부만
-app.get('/api/admin/teams', requireAdmin, (req, res) => {
+app.get('/api/admin/teams', need('events'), (req, res) => {
   const today = kstToday();
   const teams = db.prepare(`
     SELECT t.*, COUNT(e.id) AS shows,
@@ -377,7 +484,8 @@ app.get('/api/admin/teams', requireAdmin, (req, res) => {
     FROM teams t LEFT JOIN event_teams et ON et.teamId = t.id LEFT JOIN events e ON e.id = et.eventId
     GROUP BY t.id ORDER BY t.name`).all(today, today);
   const mems = db.prepare('SELECT id, name, leader, teamId FROM members WHERE teamId IS NOT NULL ORDER BY leader DESC, name').all();
-  for (const t of teams) t.members = mems.filter(m => m.teamId === t.id).map(({ id, name, leader }) => ({ id, name, leader }));
+  const showMembers = can(req.admin, 'people'); // 공연 담당에겐 멤버 이름도 안 보냄
+  for (const t of teams) t.members = showMembers ? mems.filter(m => m.teamId === t.id).map(({ id, name, leader }) => ({ id, name, leader })) : [];
   res.json(teams);
 });
 // 이름으로 팀 찾기, 없으면 만들기 → id
@@ -385,30 +493,30 @@ function teamIdByName(name) {
   db.prepare('INSERT OR IGNORE INTO teams (name) VALUES (?)').run(name);
   return db.prepare('SELECT id FROM teams WHERE name = ?').get(name).id;
 }
-app.post('/api/admin/teams', requireAdmin, (req, res) => {
+app.post('/api/admin/teams', need('events'), (req, res) => {
   const name = String(req.body.name || '').trim().slice(0, 100);
   if (!name) return res.status(400).json({ error: '팀 이름이 비었습니다.' });
   if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return res.status(409).json({ error: '같은 이름의 팀이 있습니다.' });
   res.status(201).json({ id: teamIdByName(name) });
 });
-app.patch('/api/admin/teams/:id', requireAdmin, patchRoute('teams', ['name', 'memo']));
-app.delete('/api/admin/teams/:id', requireAdmin, (req, res) => {
+app.patch('/api/admin/teams/:id', need('events'), patchRoute('teams', ['name', 'memo']));
+app.delete('/api/admin/teams/:id', need('events'), (req, res) => {
   db.prepare('DELETE FROM teams WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
 
-app.post('/api/admin/events', requireAdmin, (req, res) => {
+app.post('/api/admin/events', need('events'), (req, res) => {
   const f = {};
   for (const k of ['date', 'time', 'title', 'place', 'note']) f[k] = String(req.body[k] || '').trim().slice(0, k === 'note' ? 500 : 100);
   if (!isDate(f.date) || !f.title) return res.status(400).json({ error: '날짜와 제목은 필수입니다.' });
   const r = db.prepare('INSERT INTO events (date, time, title, place, note) VALUES (?, ?, ?, ?, ?)').run(f.date, f.time, f.title, f.place, f.note);
   res.status(201).json({ id: Number(r.lastInsertRowid) });
 });
-app.patch('/api/admin/events/:id', requireAdmin, patchRoute('events', ['date', 'time', 'title', 'place', 'note']));
-app.delete('/api/admin/events/:id', requireAdmin, (req, res) => {
+app.patch('/api/admin/events/:id', need('events'), patchRoute('events', ['date', 'time', 'title', 'place', 'note']));
+app.delete('/api/admin/events/:id', need('events'), (req, res) => {
   db.prepare('DELETE FROM events WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
 // 라인업에 팀 추가. teamId 또는 name(없는 팀이면 새로 만듦 — 공지 보고 그대로 칠 수 있게)
-app.post('/api/admin/events/:id/teams', requireAdmin, (req, res) => {
+app.post('/api/admin/events/:id/teams', need('events'), (req, res) => {
   const eventId = parseInt(req.params.id);
   if (!db.prepare('SELECT 1 FROM events WHERE id = ?').get(eventId)) return res.status(404).json({ error: '없는 공연입니다.' });
   const name = String(req.body.name || '').trim().slice(0, 100);
@@ -417,7 +525,7 @@ app.post('/api/admin/events/:id/teams', requireAdmin, (req, res) => {
   db.prepare('INSERT OR IGNORE INTO event_teams (eventId, teamId) VALUES (?, ?)').run(eventId, teamId);
   res.status(201).json({ ok: true });
 });
-app.delete('/api/admin/events/:id/teams/:teamId', requireAdmin, (req, res) => {
+app.delete('/api/admin/events/:id/teams/:teamId', need('events'), (req, res) => {
   db.prepare('DELETE FROM event_teams WHERE eventId = ? AND teamId = ?').run(parseInt(req.params.id), parseInt(req.params.teamId));
   res.json({ ok: true });
 });
