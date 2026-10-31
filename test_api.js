@@ -12,7 +12,7 @@ const PW = 'test-pw';
 
 const srv = spawn(process.execPath, ['server.js'], {
   cwd: __dirname,
-  env: { ...process.env, PORT, DB_FILE: path.join(tmp, 't.db'), ADMIN_PASSWORD: PW, NODE_ENV: '', ROOM_NAMES: '{"3":"A","4":"B"}' },
+  env: { ...process.env, PORT, DB_FILE: path.join(tmp, 't.db'), ADMIN_PASSWORD: PW, NODE_ENV: '', ROOM_NAMES: '{"3":"A","4":"B"}', TEAM_MEMBERS_PUBLIC: '1' },
   stdio: ['ignore', 'pipe', 'inherit'],
 });
 
@@ -57,7 +57,7 @@ async function main() {
     assert.equal((await req('POST', '/api/members', { name: '홍길동', email, phone: '010-7777-0000', consent: true, age14: true })).status, 400, `이메일 거부: ${email}`);
   assert.equal((await req('GET', '/api/mx?domain=1.com')).data.ok, false, '1단계 MX 사전 확인: 메일 서버 없는 도메인');
   assert.equal((await req('GET', '/api/mx?domain=gmail.com')).data.ok, true, '1단계 MX 사전 확인: gmail');
-  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@gmail.com', phone: '010-9999-8888', band: '밴드', leader: true, consent: true, age14: true });
+  r = await req('POST', '/api/members', { name: '홍길동', email: 'a@gmail.com', phone: '010-9999-8888', band: '밴드', leader: true, publicOk: true, consent: true, age14: true });
   assert.equal(r.status, 201, '멤버 생성');
   const memId = r.data.id;
   r = await req('POST', '/api/members', { name: "Mary O'Brien", email: 'm@naver.com', phone: '010-9999-7777', consent: true, age14: true });
@@ -91,6 +91,8 @@ async function main() {
   r = await req('GET', '/api/admin/members?q=길동');
   assert.equal(r.data.length, 1, '멤버 검색');
   assert.equal(r.data[0].leader, 1, '리더 플래그 저장');
+  assert.equal(r.data[0].publicOk, 1, '팀 페이지 공개 동의 저장');
+  assert.equal((await req('GET', '/api/admin/members?q=Mary')).data[0].publicOk, 0, '체크 안 하면 0');
   r = await req('GET', '/api/admin/invite');
   assert.equal(r.status, 200); assert.ok('band' in r.data && 'chat' in r.data && 'chatCode' in r.data, '안내문 재료');
   r = await req('PATCH', `/api/admin/members/${memId}`, { status: '합류', memo: '드럼 가능', leader: 0 });
@@ -114,7 +116,8 @@ async function main() {
   r = await req('GET', '/api/admin/teams');
   const t = r.data.find(x => x.id === teamId);
   assert.equal(t.shows, 2); assert.equal(t.last, '2026-01-04'); assert.equal(t.next, '2099-11-08', '팀 출연 이력은 라인업에서 셈');
-  assert.deepEqual(t.members.map(m => m.name), ['홍길동'], '팀에 연결된 멤버');
+  assert.deepEqual(t.members.map(m => [m.name, m.publicOk]), [['홍길동', 1]], '팀에 연결된 멤버(공개 동의 포함)');
+  assert.deepEqual((await req('GET', `/api/teams/${teamId}`, null, false)).data.members, [{ name: '홍길동', role: '', leader: 0 }], '공개 팀 페이지에 동의 멤버만(TEAM_MEMBERS_PUBLIC=1)');
   const other = r.data.find(x => x.name === '청춘클럽').id;
   assert.equal((await req('PATCH', `/api/admin/teams/${other}`, { name: '와락밴드' })).status, 409, '팀 이름을 겹치게 바꾸면 409');
 
@@ -126,10 +129,16 @@ async function main() {
   assert.equal((await req('GET', `/api/team-edit/${key1}`, null, false)).data.name, '청춘클럽', '링크로 팀 열기(로그인 없이)');
   assert.equal((await req('PUT', `/api/team-edit/${key1}`, { videos: ['https://example.com/x'] }, false)).status, 400, '유튜브 아닌 주소 거부');
   assert.equal((await req('PUT', `/api/team-edit/${key1}`, { videos: Array.from({ length: 7 }, (_, i) => `https://youtu.be/aaaaaaaaaa${i}`) }, false)).status, 400, '영상 7개 거부');
-  r = await req('PUT', `/api/team-edit/${key1}`, { genre: '모던록', intro: '안녕하세요', videos: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10', 'https://youtu.be/dQw4w9WgXcQ', 'youtube.com/shorts/abcdefghijk', ''] }, false);
+  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { links: ['https://www.youtube.com/@Chun-Ki-Noo-Sul', 'https://twitter.com/x'] }, false)).status, 400, '유튜브·인스타 아닌 링크 거부');
+  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { links: ['https://evil.com/?u=youtube.com'] }, false)).status, 400, '호스트 위장 거부');
+  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { links: ['youtube.com/@a', 'youtube.com/@b', 'youtube.com/@c', 'youtube.com/@d', 'youtube.com/@e'] }, false)).status, 400, '링크 5개 거부');
+  r = await req('PUT', `/api/team-edit/${key1}`, { genre: '모던록', intro: '안녕하세요', videos: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10', 'https://youtu.be/dQw4w9WgXcQ', 'youtube.com/shorts/abcdefghijk', ''],
+    links: ['www.youtube.com/@Chun-Ki-Noo-Sul', 'http://instagram.com/eumjinin', 'https://www.youtube.com/@Chun-Ki-Noo-Sul', ''] }, false);
   assert.equal(r.status, 200, '팀이 소개 저장');
   r = await req('GET', `/api/teams/${other}`, null, false);
   assert.deepEqual(r.data.videos, ['dQw4w9WgXcQ', 'abcdefghijk'], '유튜브 주소 → id, 중복 제거');
+  assert.deepEqual(r.data.links, ['https://www.youtube.com/@Chun-Ki-Noo-Sul', 'https://instagram.com/eumjinin'], '채널·인스타 링크 https 정규화, 중복 제거');
+  assert.deepEqual((await req('GET', `/api/team-edit/${key1}`, null, false)).data.links, r.data.links, '수정 화면도 같은 링크 목록');
   assert.equal(r.data.events.length, 1, '팀 페이지에 출연 이력');
   r = await req('GET', '/api/events', null, false);
   assert.equal(r.data.find(e => e.id === future).teams.find(x => x.id === other).page, true, '소개 채운 팀은 일정에서 링크');

@@ -93,10 +93,13 @@ const memberCols = db.prepare('PRAGMA table_info(members)').all().map(c => c.nam
 if (!memberCols.includes('leader')) db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
 // 신청자가 적은 band(자유 글자)는 그대로 두고, 관리자가 실제 팀에 연결
 if (!memberCols.includes('teamId')) db.exec('ALTER TABLE members ADD COLUMN teamId INTEGER REFERENCES teams(id) ON DELETE SET NULL');
+// 10-31: 팀 소개 페이지에 이름·역할 공개 동의(선택). 지금은 저장·관리자 표시만, 공개 페이지는 아직 안 씀. 기존 신청자는 0 = 동의 안 받음
+if (!memberCols.includes('publicOk')) db.exec('ALTER TABLE members ADD COLUMN publicOk INTEGER NOT NULL DEFAULT 0');
 // 팀 소개 페이지(2026-10-30). 팀이 수정 링크(editKey)로 직접 고치고 바로 공개, 관리자는 숨김만. 개인정보 칸은 두지 않음
 const teamCols = db.prepare('PRAGMA table_info(teams)').all().map(c => c.name);
 for (const [c, def] of [['genre', "TEXT NOT NULL DEFAULT ''"], ['intro', "TEXT NOT NULL DEFAULT ''"],
-  ['videos', "TEXT NOT NULL DEFAULT '[]'"], ['editKey', 'TEXT'], ['hidden', 'INTEGER NOT NULL DEFAULT 0']])
+  ['videos', "TEXT NOT NULL DEFAULT '[]'"], ['editKey', 'TEXT'], ['hidden', 'INTEGER NOT NULL DEFAULT 0'],
+  ['links', "TEXT NOT NULL DEFAULT '[]'"]]) // 10-31: 유튜브 채널·인스타그램 주소(팀 공개 계정, 허용 호스트만)
   if (!teamCols.includes(c)) db.exec(`ALTER TABLE teams ADD COLUMN ${c} ${def}`);
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS teams_editKey ON teams(editKey)');
 
@@ -302,17 +305,21 @@ app.post('/api/reservations', rateLimit(20, 60 * 60 * 1000), (req, res) => {
 app.get('/api/events', (req, res) => {
   const events = db.prepare('SELECT * FROM events ORDER BY date, time').all();
   // page = 소개 페이지로 링크할지(숨김 아니고 채운 내용이 있을 때)
-  const lineup = db.prepare(`SELECT et.eventId, t.id, t.name, (t.hidden = 0 AND (t.intro != '' OR t.videos != '[]')) AS page
+  const lineup = db.prepare(`SELECT et.eventId, t.id, t.name, (t.hidden = 0 AND (t.intro != '' OR t.videos != '[]' OR t.links != '[]')) AS page
     FROM event_teams et JOIN teams t ON t.id = et.teamId ORDER BY et.rowid`).all();
   for (const e of events) e.teams = lineup.filter(l => l.eventId === e.id).map(({ id, name, page }) => ({ id, name, page: !!page }));
   res.json(events);
 });
 
 // 팀 소개 페이지. 숨긴 팀은 없는 것처럼 404. 출연 이력은 라인업에서
+// 동의 멤버(publicOk=1, 관리자가 팀에 연결한 사람) 표시는 TEAM_MEMBERS_PUBLIC=1 일 때만. 운영은 아직 끔 = 처리방침 1절 "현재는 표시 기능을 운영하지 않으며".
+// 켤 때는 그 문구를 지우고 기존 멤버 동의를 받는 경로(관리자 publicOk 토글)부터 만들 것
+const TEAM_MEMBERS_PUBLIC = process.env.TEAM_MEMBERS_PUBLIC === '1';
 function publicTeam(id) {
-  const t = db.prepare('SELECT id, name, genre, intro, videos FROM teams WHERE id = ? AND hidden = 0').get(id);
+  const t = db.prepare('SELECT id, name, genre, intro, videos, links FROM teams WHERE id = ? AND hidden = 0').get(id);
   if (!t) return null;
-  t.videos = JSON.parse(t.videos);
+  t.videos = JSON.parse(t.videos); t.links = JSON.parse(t.links);
+  t.members = TEAM_MEMBERS_PUBLIC ? db.prepare('SELECT name, role, leader FROM members WHERE teamId = ? AND publicOk = 1 ORDER BY leader DESC, name').all(id) : [];
   t.events = db.prepare(`SELECT e.id, e.date, e.time, e.title, e.place FROM event_teams et JOIN events e ON e.id = et.eventId
     WHERE et.teamId = ? ORDER BY e.date DESC, e.time DESC`).all(id);
   return t;
@@ -322,15 +329,18 @@ app.get('/api/teams/:id', (req, res) => {
   t ? res.json(t) : res.status(404).json({ error: '없는 팀입니다.' });
 });
 
-// 팀이 수정 링크로 직접 고침. 로그인 대신 링크(관리자가 발급·재발급). 칸은 장르·소개·유튜브만 → 개인정보를 받을 자리가 없음
-const MAX_VIDEOS = 6;
+// 팀이 수정 링크로 직접 고침. 로그인 대신 링크(관리자가 발급·재발급). 칸은 장르·소개·유튜브 영상·채널/인스타 주소만 → 개인정보를 받을 자리가 없음
+const MAX_VIDEOS = 6, MAX_LINKS = 4;
+// 외부 링크는 유튜브·인스타그램만. 다른 호스트는 거부(아무 주소나 받으면 공개 페이지가 광고판이 됨)
+const LINK_HOSTS = ['youtube.com', 'youtu.be', 'instagram.com'];
+const linkOf = u => { try { const x = new URL(/^https?:\/\//i.test(u) ? u : `https://${u}`); x.protocol = 'https:'; return LINK_HOSTS.includes(x.hostname.replace(/^(www|m)\./, '')) ? x.href : null; } catch { return null; } };
 // 유튜브 주소 → 영상 id(11자). watch?v= · youtu.be/ · shorts/ · live/ · embed/
 const ytId = u => (String(u).trim().match(/^(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([\w-]{11})(?![\w-])/) || [])[1];
 const teamByKey = key => /^[a-f0-9]{32}$/.test(key) && db.prepare('SELECT * FROM teams WHERE editKey = ?').get(key);
 app.get('/api/team-edit/:key', (req, res) => {
   const t = teamByKey(req.params.key);
   if (!t) return res.status(404).json({ error: '링크가 맞지 않습니다. 운영진에게 새 링크를 받아주세요.' });
-  res.json({ id: t.id, name: t.name, genre: t.genre, intro: t.intro, hidden: !!t.hidden, videos: JSON.parse(t.videos).map(id => `https://youtu.be/${id}`) });
+  res.json({ id: t.id, name: t.name, genre: t.genre, intro: t.intro, hidden: !!t.hidden, videos: JSON.parse(t.videos).map(id => `https://youtu.be/${id}`), links: JSON.parse(t.links) });
 });
 app.put('/api/team-edit/:key', rateLimit(30, 60 * 60 * 1000), (req, res) => {
   const t = teamByKey(req.params.key);
@@ -342,7 +352,12 @@ app.put('/api/team-edit/:key', rateLimit(30, 60 * 60 * 1000), (req, res) => {
   if (bad) return res.status(400).json({ error: `유튜브 주소가 아닙니다: ${bad.slice(0, 100)}` });
   const videos = [...new Set(urls.map(ytId))];
   if (videos.length > MAX_VIDEOS) return res.status(400).json({ error: `영상은 ${MAX_VIDEOS}개까지입니다.` });
-  db.prepare('UPDATE teams SET genre = ?, intro = ?, videos = ? WHERE id = ?').run(genre, intro, JSON.stringify(videos), t.id);
+  const linkUrls = (Array.isArray(req.body.links) ? req.body.links : []).map(u => String(u).trim()).filter(Boolean);
+  const badLink = linkUrls.find(u => !linkOf(u));
+  if (badLink) return res.status(400).json({ error: `유튜브·인스타그램 주소만 넣을 수 있습니다: ${badLink.slice(0, 100)}` });
+  const links = [...new Set(linkUrls.map(linkOf))];
+  if (links.length > MAX_LINKS) return res.status(400).json({ error: `링크는 ${MAX_LINKS}개까지입니다.` });
+  db.prepare('UPDATE teams SET genre = ?, intro = ?, videos = ?, links = ? WHERE id = ?').run(genre, intro, JSON.stringify(videos), JSON.stringify(links), t.id);
   res.json({ ok: true });
   notify(`팀 소개 수정: ${t.name}\nhttps://kband.co.kr/teams/${t.id}`); // 바로 공개라 운영진이 보고 이상하면 숨김
 });
@@ -370,8 +385,9 @@ app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
   if (db.prepare('SELECT 1 FROM members WHERE phone = ?').get(phone))
     return res.status(409).json({ error: '이미 같은 연락처로 신청된 내역이 있습니다.' });
   const leader = req.body.leader === true ? 1 : 0;
-  const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro, leader)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro, leader);
+  const publicOk = req.body.publicOk === true ? 1 : 0;
+  const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro, leader, publicOk)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro, leader, publicOk);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid), band: INVITE.band }); // 완료 화면의 밴드 가입 링크(승인은 밴드에서)
   notify(`멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'}${leader ? ' · 밴드 리더' : ''})`);
 });
@@ -531,9 +547,9 @@ app.get('/api/admin/teams', need('events'), (req, res) => {
       MIN(CASE WHEN e.date >= ? THEN e.date END) AS next
     FROM teams t LEFT JOIN event_teams et ON et.teamId = t.id LEFT JOIN events e ON e.id = et.eventId
     GROUP BY t.id ORDER BY t.name`).all(today, today);
-  const mems = db.prepare('SELECT id, name, leader, teamId FROM members WHERE teamId IS NOT NULL ORDER BY leader DESC, name').all();
+  const mems = db.prepare('SELECT id, name, leader, publicOk, teamId FROM members WHERE teamId IS NOT NULL ORDER BY leader DESC, name').all();
   const showMembers = can(req.admin, 'people'); // 공연 담당에겐 멤버 이름도 안 보냄
-  for (const t of teams) t.members = showMembers ? mems.filter(m => m.teamId === t.id).map(({ id, name, leader }) => ({ id, name, leader })) : [];
+  for (const t of teams) t.members = showMembers ? mems.filter(m => m.teamId === t.id).map(({ id, name, leader, publicOk }) => ({ id, name, leader, publicOk })) : [];
   res.json(teams);
 });
 // 이름으로 팀 찾기, 없으면 만들기 → id
@@ -608,7 +624,7 @@ function renderPage(tpl, key, p = PAGES[key]) {
 
 app.get('/sitemap.xml', (req, res) => {
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + [...Object.keys(PAGES), ...db.prepare(`SELECT id FROM teams WHERE hidden = 0 AND (intro != '' OR videos != '[]')`).all().map(t => `/teams/${t.id}`)]
+    + [...Object.keys(PAGES), ...db.prepare(`SELECT id FROM teams WHERE hidden = 0 AND (intro != '' OR videos != '[]' OR links != '[]')`).all().map(t => `/teams/${t.id}`)]
       .map(k => `  <url><loc>${SITE}${k}</loc></url>`).join('\n') + '\n</urlset>\n');
 });
 

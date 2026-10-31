@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fmt } from './Schedule';
+import { YoutubeIcon, InstagramIcon } from '../components/Icons';
 
 const SUFFIX = ' — 음진인 협동조합';
 const today = () => new Date().toLocaleDateString('sv-SE');
+// 서버가 유튜브·인스타 호스트만 받으므로 둘 중 하나. 글자 대신 아이콘, 이름은 보조기기·툴팁용
+const linkKind = u => /instagram\.com/.test(u) ? { cls: 'insta', label: '인스타그램', Icon: InstagramIcon } : { cls: 'yt', label: '유튜브 채널', Icon: YoutubeIcon };
 
 // 공개 팀 소개. 내용은 팀이 /team-edit/<링크>에서 직접 씀
 export function TeamPage() {
@@ -24,8 +27,15 @@ export function TeamPage() {
         {t && (
           <>
             <p className="page-eyebrow">{t.genre || 'Band'}</p>
-            <h1 className="section-title">{t.name}</h1>
-            {t.intro && <p className="info-lead team-intro">{t.intro}</p>}
+            {/* 이름 옆에 채널 아이콘, 영상이 소개글보다 먼저(10-31 사용자 요청) */}
+            <div className="team-head">
+              <h1 className="section-title">{t.name}</h1>
+              {t.links.length > 0 && (
+                <span className="team-links">
+                  {t.links.map(u => { const { cls, label, Icon } = linkKind(u); return <a key={u} href={u} className={cls} target="_blank" rel="noreferrer noopener" aria-label={label} title={label}><Icon /></a>; })}
+                </span>
+              )}
+            </div>
             {t.videos.length > 0 && (
               <div className="team-videos">
                 {t.videos.map(v => (
@@ -33,6 +43,11 @@ export function TeamPage() {
                     allow="encrypted-media; picture-in-picture" allowFullScreen />
                 ))}
               </div>
+            )}
+            {t.intro && <p className="info-lead team-intro">{t.intro}</p>}
+            {/* 서버 TEAM_MEMBERS_PUBLIC=1 일 때만 옴(공개 동의한 멤버). 꺼져 있으면 빈 배열 */}
+            {t.members.length > 0 && (
+              <p className="team-members">멤버 · {t.members.map(m => `${m.role ? m.role + ' ' : ''}${m.name}${m.leader ? '(리더)' : ''}`).join(', ')}</p>
             )}
             {t.events.length > 0 && (
               <>
@@ -58,7 +73,7 @@ export function TeamPage() {
 export function TeamEdit() {
   const { key } = useParams();
   const [t, setT] = useState(null);
-  const [f, setF] = useState({ genre: '', intro: '', videos: '' });
+  const [f, setF] = useState({ genre: '', intro: '', videos: '', links: '' });
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   useEffect(() => {
@@ -66,7 +81,7 @@ export function TeamEdit() {
     fetch(`/api/team-edit/${key}`).then(async r => {
       const x = await r.json();
       if (!r.ok) throw new Error(x.error);
-      setT(x); setF({ genre: x.genre, intro: x.intro, videos: x.videos.join('\n') });
+      setT(x); setF({ genre: x.genre, intro: x.intro, videos: x.videos.join('\n'), links: x.links.join('\n') });
     }).catch(ex => setErr(ex.message));
   }, [key]);
   const set = k => e => { setF({ ...f, [k]: e.target.value }); setMsg(''); };
@@ -74,7 +89,7 @@ export function TeamEdit() {
     e.preventDefault(); setErr(''); setMsg('');
     const r = await fetch(`/api/team-edit/${key}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ genre: f.genre, intro: f.intro, videos: f.videos.split('\n') }),
+      body: JSON.stringify({ genre: f.genre, intro: f.intro, videos: f.videos.split('\n'), links: f.links.split('\n') }),
     });
     const x = await r.json().catch(() => ({}));
     r.ok ? setMsg('저장했습니다. 바로 공개됩니다.') : setErr(x.error || `오류 ${r.status}`);
@@ -88,12 +103,15 @@ export function TeamEdit() {
         {!t && err && <p className="info-lead">{err}</p>}
         {t && (
           <form className="team-form" onSubmit={save}>
-            <p className="team-warn">이 페이지에 쓴 내용은 누구나 볼 수 있습니다. 멤버 실명·전화번호·주소는 적지 마세요.
+            <p className="team-warn">이 페이지에 쓴 내용은 누구나 볼 수 있습니다. 멤버 소개는 본인이 동의한 활동명과 역할까지만
+              (예: 보컬 김OO, 기타 박OO). 전화번호·주소·개인 SNS 계정은 적지 마세요.
               이 링크를 가진 사람은 누구나 고칠 수 있으니 팀 안에서만 나눠주세요.</p>
             {t.hidden && <p className="team-warn">지금은 운영진이 공개 페이지를 숨겨 둔 상태입니다.</p>}
             <label>장르<input value={f.genre} maxLength={50} placeholder="예: 모던록, 시티팝" onChange={set('genre')} /></label>
-            <label>소개<textarea value={f.intro} maxLength={2000} rows={7} placeholder="팀 소개, 결성 이야기, 하는 곡들" onChange={set('intro')} /></label>
-            <label>유튜브 영상 주소 (한 줄에 하나, 6개까지)
+            <label>소개<textarea value={f.intro} maxLength={2000} rows={7} placeholder={'팀 소개, 결성 이야기, 하는 곡들\n멤버: 보컬 OO, 기타 OO, 베이스 OO, 드럼 OO'} onChange={set('intro')} /></label>
+            <label>유튜브 채널 · 인스타그램 주소 (한 줄에 하나, 4개까지)
+              <textarea value={f.links} rows={2} placeholder={'https://www.youtube.com/@...\nhttps://www.instagram.com/...'} onChange={set('links')} /></label>
+            <label>유튜브 영상 주소 (한 줄에 하나, 6개까지 — 채널이 아니라 영상 하나하나의 주소)
               <textarea value={f.videos} rows={4} placeholder="https://youtu.be/..." onChange={set('videos')} /></label>
             {err && <p className="form-error">{err}</p>}
             {msg && <p className="team-ok">{msg} <Link to={`/teams/${t.id}`}>페이지 보기 →</Link></p>}

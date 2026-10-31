@@ -1,4 +1,4 @@
-// 선 아이콘. 출처: Lucide(ISC) music·door-open·sprout, Heroicons(MIT) wrench-screwdriver, Tabler(MIT) map-2.
+// 선 아이콘. 출처: Lucide(ISC) music·door-open·sprout·youtube·instagram, Heroicons(MIT) wrench-screwdriver, Tabler(MIT) map-2.
 // 라이선스 전문: public/third-party-licenses.txt. 색은 currentColor, 크기는 부모 font-size(1em).
 const base = { width: '1em', height: '1em', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
 
@@ -41,6 +41,22 @@ export const MapIcon = () => (
     <path d="M15 7v5.5" />
     <path d="M21.121 20.121a3 3 0 1 0 -4.242 0c.418 .419 1.125 1.045 2.121 1.879c1.051 -.89 1.759 -1.516 2.121 -1.879" />
     <path d="M19 18v.01" />
+  </svg>
+);
+
+// 팀 소개 페이지 외부 링크(Team.js)
+export const YoutubeIcon = () => (
+  <svg {...base} strokeWidth="2">
+    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+    <path d="m10 15 5-3-5-3z" />
+  </svg>
+);
+
+export const InstagramIcon = () => (
+  <svg {...base} strokeWidth="2">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
   </svg>
 );
 

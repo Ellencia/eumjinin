@@ -74,7 +74,7 @@ function Confetti() {
 
 function Join() {
   const [form, setForm] = useState({
-    name: '', email: '', band: '', role: '', leader: false,
+    name: '', email: '', band: '', role: '', leader: false, publicOk: false,
     location: '', birth: '', genre: '', phone: '', intro: '',
   });
   const [consent, setConsent] = useState(false);
@@ -321,6 +321,15 @@ function Join() {
                   purpose="멤버 신청 접수, 연락, 커뮤니티(네이버 밴드·카카오톡 오픈채팅) 초대 안내"
                   retention="멤버 활동 종료 또는 동의 철회 시까지, 합류하지 않은 신청은 접수 후 1년"
                 />
+                {/* 선택 동의. 서버는 publicOk로 저장만 하고 공개 페이지에는 아직 안 씀(처리방침 1절) */}
+                <label className="consent-row">
+                  <input type="checkbox" checked={form.publicOk} onChange={(e) => setForm({ ...form, publicOk: e.target.checked })} />
+                  <span>
+                    <strong>[선택] 팀 소개 페이지 공개 동의</strong><br />
+                    소속 팀의 소개 페이지(kband.co.kr/teams)에 이름과 역할을 표시하는 데 동의합니다.
+                    동의하지 않아도 신청에 불이익이 없고, 언제든 담당자에게 철회를 요청할 수 있습니다.
+                  </span>
+                </label>
               </>
             )}
           </fieldset>

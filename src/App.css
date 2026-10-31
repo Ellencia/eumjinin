@@ -1436,7 +1436,16 @@ main { padding-top: 64px; }
 .timeline-item p.schedule-note { color: #6b7280; font-size: 0.9rem; }
 
 /* 팀 소개(/teams/:id)·팀 수정(/team-edit/:key) */
-.team-intro { white-space: pre-line; text-align: left; }
+.team-intro { white-space: pre-line; text-align: left; margin-top: 8px; }
+.team-members { max-width: 760px; margin: -20px auto 36px; color: #6b7280; font-size: 0.95rem; text-align: left; }
+/* 이름 + 채널 아이콘 한 줄. 아이콘은 브랜드색 동그라미(32px, 제목에 안 눌리게), 이름은 aria-label·title */
+.team-head { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; margin-bottom: 28px; }
+.team-head .section-title { margin-bottom: 0; }
+.team-links { display: inline-flex; gap: 8px; }
+.team-links a { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; color: #fff; font-size: 17px; text-decoration: none; box-shadow: 0 3px 10px rgba(0,0,0,0.12); transition: transform 0.15s; }
+.team-links a:hover { transform: translateY(-2px) scale(1.06); }
+.team-links a.yt { background: #ff0033; }
+.team-links a.insta { background: linear-gradient(45deg, #f9ce34, #ee2a7b 55%, #6228d7); }
 .team-videos { max-width: 760px; margin: 0 auto 24px; display: grid; gap: 16px; }
 .team-videos iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; background: #000; }
 .team-form { max-width: 640px; margin: 24px auto 0; display: flex; flex-direction: column; gap: 16px; }

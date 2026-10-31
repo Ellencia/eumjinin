@@ -46,15 +46,16 @@
 .adm-stack > * { white-space: normal; overflow-wrap: anywhere; }
 .adm-stack .adm-dim { font-weight: 400; }
 /* 버튼·체크박스 묶음. 공간이 모자라면 묶음 단위로 꺾이고 글자는 안 꺾임 */
-.adm-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* 팀 탭 "소개 페이지" 칸: 상태 | 복사 | 재발급 | 숨김 을 고정 폭 격자로 → 행마다 버튼이 세로로 맞음. 링크 없는 팀은 재발급 자리만 비움 */
+.adm-actions { display: grid; grid-template-columns: 4.5em 9.5em 5em auto; align-items: center; gap: 6px; }
 .adm-actions > * { white-space: nowrap; }
+.adm-actions > button:disabled { visibility: hidden; }
 .adm-dim { color: #999; font-size: 0.8rem; }
 .adm-title { font-weight: 600; }
 .adm-empty { text-align: center; color: #999; padding: 32px !important; }
 .adm-copy { border: 1px solid #c4b5fd; border-radius: 6px; background: #f5f3ff; color: #6d28d9; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
 .adm-copy:hover { background: #ede9fe; }
-.adm-copy:disabled { opacity: 0.4; cursor: not-allowed; }
-.adm-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 1rem; }
+.adm-copy:disabled { opacity: 0.4; cursor: not-allowed; }.adm-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 1rem; }
 .adm-del:hover { color: #e05555; }
 .adm-error { color: #e05555; margin: 0 0 10px; }
 
@@ -80,6 +81,8 @@
   .adm-table td:empty { display: none; }
   .adm-table td > input:not([type="checkbox"]), .adm-table td > select, .adm-table td > .adm-stack, .adm-table td > .adm-actions { flex: 1; width: auto; min-width: 0; max-width: none; }
   .adm-stack select, .adm-stack input { width: 100%; }
+  .adm-actions { display: flex; flex-wrap: wrap; } /* 카드에선 격자가 넘침. 세로 정렬은 카드마다 따로라 의미 없음 */
+  .adm-actions > button:disabled { display: none; }
   .adm-title { font-size: 1.05rem; font-weight: 700; }
   .adm-intro { align-items: flex-start !important; }
   .adm-table tr > td:first-child { padding-right: 44px; }

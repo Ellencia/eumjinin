@@ -252,11 +252,12 @@ function Teams({ onAuthFail }) {
               <td data-label="출연">{t.shows || ''}</td>
               <td data-label="지난 출연" className="adm-dim">{t.last || ''}</td>
               <td data-label="다음 출연">{t.next || ''}</td>
-              <td data-label="멤버" className="adm-wrap">{t.members.map(m => m.leader ? `${m.name}(리더)` : m.name).join(', ')}</td>
+              <td data-label="멤버" className="adm-wrap" title="☆ = 팀 소개 페이지에 이름·역할 공개 동의한 멤버">{t.members.map(m => `${m.publicOk ? '☆' : ''}${m.name}${m.leader ? '(리더)' : ''}`).join(', ')}</td>
               <td data-label="소개 페이지"><div className="adm-actions">
-                {(t.intro || t.videos !== '[]') ? <a href={`/teams/${t.id}`} target="_blank" rel="noreferrer">보기</a> : <span className="adm-dim">비어 있음</span>}
+                {(t.intro || t.videos !== '[]' || t.links !== '[]') ? <a href={`/teams/${t.id}`} target="_blank" rel="noreferrer">보기</a> : <span className="adm-dim">비어 있음</span>}
+                {/* 버튼 개수·글자 길이가 행마다 달라지면 칸 폭이 널뛴다 → 격자(admin.css .adm-actions), 재발급은 항상 그리되 링크 없으면 비활성=안 보임 */}
                 <button className="adm-copy" onClick={() => copyKey(t, false)}>{copied === t.id ? '복사됨' : t.editKey ? '수정 링크 복사' : '수정 링크 만들기'}</button>
-                {t.editKey && <button className="adm-copy" onClick={() => copyKey(t, true)} title="예전 링크를 못 쓰게 하고 새로 만듦">재발급</button>}
+                <button className="adm-copy" onClick={() => copyKey(t, true)} disabled={!t.editKey} title={t.editKey ? '예전 링크를 못 쓰게 하고 새로 만듦' : '아직 만든 링크가 없음'}>재발급</button>
                 <label className="adm-dim"><input type="checkbox" checked={!!t.hidden} onChange={e => run(`/api/admin/teams/${t.id}`, 'PATCH', { hidden: e.target.checked ? 1 : 0 })} /> 숨김</label>
               </div></td>
               <td data-label="메모"><MemoInput value={t.memo} onSave={memo => run(`/api/admin/teams/${t.id}`, 'PATCH', { memo })} /></td>
