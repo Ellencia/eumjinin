@@ -312,14 +312,13 @@ app.get('/api/events', (req, res) => {
 });
 
 // 팀 소개 페이지. 숨긴 팀은 없는 것처럼 404. 출연 이력은 라인업에서
-// 동의 멤버(publicOk=1, 관리자가 팀에 연결한 사람) 표시는 TEAM_MEMBERS_PUBLIC=1 일 때만. 운영은 아직 끔 = 처리방침 1절 "현재는 표시 기능을 운영하지 않으며".
-// 켤 때는 그 문구를 지우고 기존 멤버 동의를 받는 경로(관리자 publicOk 토글)부터 만들 것
-const TEAM_MEMBERS_PUBLIC = process.env.TEAM_MEMBERS_PUBLIC === '1';
+// 멤버는 공개 동의(publicOk=1)한 사람만. 소속은 관리자 연결(teamId) 또는 신청서에 적은 밴드 이름이 팀 이름과 같으면 자동(10-31)
 function publicTeam(id) {
   const t = db.prepare('SELECT id, name, genre, intro, videos, links FROM teams WHERE id = ? AND hidden = 0').get(id);
   if (!t) return null;
   t.videos = JSON.parse(t.videos); t.links = JSON.parse(t.links);
-  t.members = TEAM_MEMBERS_PUBLIC ? db.prepare('SELECT name, role, leader FROM members WHERE teamId = ? AND publicOk = 1 ORDER BY leader DESC, name').all(id) : [];
+  t.members = db.prepare(`SELECT name, role, leader FROM members WHERE publicOk = 1
+    AND (teamId = ? OR (teamId IS NULL AND lower(trim(band)) = lower(trim(?)))) ORDER BY leader DESC, name`).all(id, t.name);
   t.events = db.prepare(`SELECT e.id, e.date, e.time, e.title, e.place FROM event_teams et JOIN events e ON e.id = et.eventId
     WHERE et.teamId = ? ORDER BY e.date DESC, e.time DESC`).all(id);
   return t;

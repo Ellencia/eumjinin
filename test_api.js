@@ -12,7 +12,7 @@ const PW = 'test-pw';
 
 const srv = spawn(process.execPath, ['server.js'], {
   cwd: __dirname,
-  env: { ...process.env, PORT, DB_FILE: path.join(tmp, 't.db'), ADMIN_PASSWORD: PW, NODE_ENV: '', ROOM_NAMES: '{"3":"A","4":"B"}', TEAM_MEMBERS_PUBLIC: '1' },
+  env: { ...process.env, PORT, DB_FILE: path.join(tmp, 't.db'), ADMIN_PASSWORD: PW, NODE_ENV: '', ROOM_NAMES: '{"3":"A","4":"B"}' },
   stdio: ['ignore', 'pipe', 'inherit'],
 });
 
@@ -117,7 +117,10 @@ async function main() {
   const t = r.data.find(x => x.id === teamId);
   assert.equal(t.shows, 2); assert.equal(t.last, '2026-01-04'); assert.equal(t.next, '2099-11-08', '팀 출연 이력은 라인업에서 셈');
   assert.deepEqual(t.members.map(m => [m.name, m.publicOk]), [['홍길동', 1]], '팀에 연결된 멤버(공개 동의 포함)');
-  assert.deepEqual((await req('GET', `/api/teams/${teamId}`, null, false)).data.members, [{ name: '홍길동', role: '', leader: 0 }], '공개 팀 페이지에 동의 멤버만(TEAM_MEMBERS_PUBLIC=1)');
+  // 자동 소속: 신청서 밴드 이름이 팀 이름과 같고(공백·대소문자 무시) 동의한 사람만. 동의 없으면 이름이 맞아도 안 뜸
+  assert.equal((await req('POST', '/api/members', { name: '임꺽정', email: 'l@gmail.com', phone: '010-9999-6666', band: ' 와락밴드 ', role: '베이스', publicOk: true, consent: true, age14: true }, false)).status, 201);
+  assert.equal((await req('POST', '/api/members', { name: '비동의', email: 'n@gmail.com', phone: '010-9999-5555', band: '와락밴드', consent: true, age14: true }, false)).status, 201);
+  assert.deepEqual((await req('GET', `/api/teams/${teamId}`, null, false)).data.members, [{ name: '임꺽정', role: '베이스', leader: 0 }, { name: '홍길동', role: '', leader: 0 }], '공개 팀 페이지 멤버 = 동의 + (관리자 연결 또는 밴드 이름 일치)');
   const other = r.data.find(x => x.name === '청춘클럽').id;
   assert.equal((await req('PATCH', `/api/admin/teams/${other}`, { name: '와락밴드' })).status, 409, '팀 이름을 겹치게 바꾸면 409');
 

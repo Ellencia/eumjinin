@@ -45,7 +45,7 @@ export function TeamPage() {
               </div>
             )}
             {t.intro && <p className="info-lead team-intro">{t.intro}</p>}
-            {/* 서버 TEAM_MEMBERS_PUBLIC=1 일 때만 옴(공개 동의한 멤버). 꺼져 있으면 빈 배열 */}
+            {/* 공개 동의한 멤버만 옴(관리자 연결 또는 신청서 밴드 이름 일치) */}
             {t.members.length > 0 && (
               <p className="team-members">멤버 · {t.members.map(m => `${m.role ? m.role + ' ' : ''}${m.name}${m.leader ? '(리더)' : ''}`).join(', ')}</p>
             )}

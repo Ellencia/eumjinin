@@ -74,6 +74,7 @@ function Site() {
             <Route path="/about/greeting" element={<InfoPage />} />
             <Route path="/about/history" element={<InfoPage />} />
             <Route path="/about/location" element={<InfoPage />} />
+            <Route path="/community/teams" element={<InfoPage />} />
             <Route path="/community/archive" element={<InfoPage />} />
             <Route path="/community/board" element={<InfoPage />} />
             <Route path="/community/qna" element={<InfoPage />} />

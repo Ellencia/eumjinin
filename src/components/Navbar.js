@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   {
     label: '커뮤니티',
     dropdown: [
+      { label: '소속 팀', href: '/community/teams' },
       { label: '자유게시판', href: '/community/board' },
       { label: 'Q&A', href: '/community/qna' },
     ],
