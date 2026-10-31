@@ -1,65 +1,94 @@
-/* 관리자 화면. 공개 사이트 스타일과 분리 */
-.adm { min-height: 100vh; background: #f6f6f9; color: #1f2330; font-size: 0.9rem; }
-.adm-header { display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #fff; border-bottom: 1px solid #e3e5ec; }
-.adm-header nav { display: flex; gap: 4px; }
-.adm-header nav button { background: none; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: #555; }
-.adm-header nav button.active { background: #ede9fe; color: #6d28d9; font-weight: 700; }
-.adm-logout { margin-left: auto; background: none; border: 1px solid #ddd; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
-.adm-main { padding: 20px 24px; overflow-x: auto; }
+/* 관리자 화면. 공개 사이트 스타일과 분리. 글꼴은 index.js가 전역으로 싣는 IBM Plex Sans KR */
+.adm { min-height: 100vh; display: flex; flex-direction: column; background: #f4f4f7; color: #1f2330; font-family: 'IBM Plex Sans KR', sans-serif; font-size: 0.9rem; line-height: 1.45; word-break: keep-all; }
+.adm input, .adm select, .adm button { font: inherit; }
+.adm input, .adm select { color: inherit; }
+.adm-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 20px; padding: 10px 24px; background: #fff; border-bottom: 1px solid #e3e5ec; }
+.adm-header > strong { font-size: 1rem; white-space: nowrap; }
+.adm-header nav { display: flex; gap: 2px; }
+.adm-header nav button { background: none; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; color: #555; }
+.adm-header nav button:hover { background: #f1effa; }
+.adm-header nav button.active { background: #ede9fe; color: #6d28d9; font-weight: 600; }
+.adm-me { margin-left: auto; color: #888; font-size: 0.8rem; white-space: nowrap; }
+.adm-logout { background: none; border: 1px solid #d9dbe3; padding: 6px 12px; border-radius: 8px; cursor: pointer; color: #555; white-space: nowrap; }
+.adm-main { padding: 20px 24px 40px; overflow-x: auto; }
 
-.adm-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
-.adm-filters input, .adm-filters select, .adm-table select, .adm-memo {
-  border: 1px solid #d9dbe3; border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; background: #fff;
+/* 입력 공통 */
+.adm-filters input, .adm-filters select, .adm-table input:not([type="checkbox"]), .adm-table select {
+  box-sizing: border-box; border: 1px solid #d9dbe3; border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; background: #fff;
 }
-.adm-filters input[type="text"], .adm-filters input:not([type]) { min-width: 260px; }
-.adm-count { color: #777; margin-left: auto; }
+.adm input:focus, .adm select:focus { outline: 2px solid #c4b5fd; outline-offset: 0; border-color: #a78bfa; }
+.adm-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.adm-filters input[type="text"], .adm-filters input:not([type]) { min-width: 240px; }
+.adm-filters input.adm-short { width: 110px; min-width: 0; }
+.adm-count { color: #777; margin-left: auto; white-space: nowrap; }
 
+/* 표: 보통 칸은 내용 폭, th.adm-grow 칸이 남는 폭을 나눠 가짐. 그 칸의 입력은 칸을 꽉 채움 */
 .adm-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e3e5ec; }
 .adm-table th, .adm-table td { padding: 8px 10px; border-bottom: 1px solid #eef0f4; text-align: left; white-space: nowrap; vertical-align: middle; }
-.adm-table th { background: #fafafd; font-weight: 600; color: #666; font-size: 0.8rem; }
-.adm-table a { color: #6d28d9; }
-.adm-memo { width: 180px; }
-.adm-name, .adm-short, .adm-lineup input { border: 1px solid #d9dbe3; border-radius: 6px; padding: 6px 8px; font-size: 0.85rem; background: #fff; }
-.adm-name { width: 140px; }
-.adm-short, .adm-filters input.adm-short { width: 110px; min-width: 0; }
-.adm-lineup { white-space: normal !important; min-width: 260px; }
+.adm-table th { background: #fafafd; font-weight: 600; color: #666; font-size: 0.78rem; }
+.adm-table th.adm-grow { width: 16%; }
+.adm-table th.adm-grow-2 { width: 28%; }
+.adm-table tbody tr:hover td { background: #fcfbff; }
+.adm-table a { color: #6d28d9; text-decoration: none; }
+.adm-table a:hover { text-decoration: underline; }
+.adm-memo, .adm-name { width: 100%; min-width: 110px; }
+.adm-short { width: 6.5em; }
+.adm-lineup { white-space: normal !important; min-width: 240px; }
+.adm-lineup input { width: 6.5em; vertical-align: middle; }
 .adm-chip { display: inline-flex; align-items: center; gap: 4px; margin: 2px 4px 2px 0; padding: 2px 4px 2px 8px; border-radius: 999px; background: #ede9fe; color: #4c1d95; font-size: 0.8rem; }
 .adm-chip button { background: none; border: none; color: #8b5cf6; cursor: pointer; font-size: 0.75rem; padding: 0 2px; }
 .adm-table tr.adm-past td { opacity: 0.55; }
-.adm-intro { white-space: pre-wrap !important; min-width: 260px; max-width: 420px; word-break: keep-all; overflow-wrap: anywhere; }
+.adm-intro { white-space: pre-wrap !important; min-width: 200px; overflow-wrap: anywhere; }
+.adm-wrap { white-space: normal !important; min-width: 140px; }
+/* 한 칸에 두 줄(이름+역할, 전화+이메일, 팀+다음 출연). 긴 이메일은 칸 안에서 꺾임 */
+.adm-stack { display: flex; flex-direction: column; gap: 2px; min-width: 8em; max-width: 16em; }
+.adm-contact { min-width: 13em; }
+.adm-stack > * { white-space: normal; overflow-wrap: anywhere; }
+.adm-stack .adm-dim { font-weight: 400; }
+/* 버튼·체크박스 묶음. 공간이 모자라면 묶음 단위로 꺾이고 글자는 안 꺾임 */
+.adm-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.adm-actions > * { white-space: nowrap; }
 .adm-dim { color: #999; font-size: 0.8rem; }
+.adm-title { font-weight: 600; }
 .adm-empty { text-align: center; color: #999; padding: 32px !important; }
-.adm-copy { border: 1px solid #c4b5fd; border-radius: 6px; background: #f5f3ff; color: #6d28d9; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; }
+.adm-copy { border: 1px solid #c4b5fd; border-radius: 6px; background: #f5f3ff; color: #6d28d9; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+.adm-copy:hover { background: #ede9fe; }
 .adm-copy:disabled { opacity: 0.4; cursor: not-allowed; }
 .adm-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 1rem; }
 .adm-del:hover { color: #e05555; }
 .adm-error { color: #e05555; margin: 0 0 10px; }
 
 .adm-table tr.st-취소 td, .adm-table tr.st-보류 td { color: #aaa; }
-.adm-table tr.st-확정 td:first-child, .adm-table tr.st-합류 td:nth-child(2) { font-weight: 700; color: #15803d; }
+.adm-table tr.st-확정 td:first-child, .adm-table tr.st-합류 td:nth-child(2) .adm-title { font-weight: 700; color: #15803d; }
 
 /* 폰: 표 → 행마다 카드, 칸 이름은 td data-label */
 @media (max-width: 720px) {
   .adm-header { flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; }
   .adm-header nav { order: 3; width: 100%; overflow-x: auto; }
   .adm-header nav button { white-space: nowrap; padding: 8px 12px; }
-  .adm-main { padding: 12px; }
+  .adm-me { display: none; }
+  .adm-logout { margin-left: auto; }
+  .adm-main { padding: 12px 12px 32px; }
   .adm-filters input[type="text"], .adm-filters input:not([type]) { min-width: 0; flex: 1 1 100%; }
   .adm-table, .adm-table tbody, .adm-table tr, .adm-table td { display: block; }
   .adm-table { border: none; background: none; }
   .adm-table thead { display: none; }
   .adm-table tr { position: relative; background: #fff; border: 1px solid #e3e5ec; border-radius: 10px; padding: 8px 0; margin-bottom: 12px; }
+  .adm-table tbody tr:hover td { background: none; }
   .adm-table td { display: flex; align-items: center; gap: 12px; white-space: normal; border: none; padding: 5px 14px; min-width: 0; max-width: none; }
   .adm-table td[data-label]::before { content: attr(data-label); flex: 0 0 64px; color: #999; font-size: 0.8rem; }
   .adm-table td:empty { display: none; }
-  .adm-table td > input:not([type="checkbox"]), .adm-table td > select, .adm-memo, .adm-name, .adm-short { flex: 1; width: auto; min-width: 0; }
+  .adm-table td > input:not([type="checkbox"]), .adm-table td > select, .adm-table td > .adm-stack, .adm-table td > .adm-actions { flex: 1; width: auto; min-width: 0; max-width: none; }
+  .adm-stack select, .adm-stack input { width: 100%; }
   .adm-title { font-size: 1.05rem; font-weight: 700; }
   .adm-intro { align-items: flex-start !important; }
   .adm-table tr > td:first-child { padding-right: 44px; }
   .adm-act { position: absolute; top: 6px; right: 4px; padding: 4px 8px !important; }
   .adm-lineup { flex-wrap: wrap; min-width: 0; }
+  .adm-lineup input { flex: 1 1 120px; width: auto; }
 }
 
-.adm-login { max-width: 320px; margin: 20vh auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.adm-login { max-width: 320px; margin: 16vh auto; display: flex; flex-direction: column; gap: 12px; padding: 28px 24px; background: #fff; border: 1px solid #e3e5ec; border-radius: 12px; }
 .adm-login h1 { font-size: 1.3rem; margin: 0 0 8px; }
 .adm-login input { border: 1px solid #d9dbe3; border-radius: 8px; padding: 10px 12px; font-size: 1rem; }
+@media (max-width: 720px) { .adm-login { margin: 10vh 16px; } }

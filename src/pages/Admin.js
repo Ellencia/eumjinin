@@ -97,7 +97,7 @@ function Reservations({ onAuthFail, full }) {
       </div>
       {err && <p className="adm-error">{err}</p>}
       <table className="adm-table">
-        <thead><tr><th>날짜</th><th>시간</th><th>방</th><th>이름</th><th>연락처</th><th>상태</th><th>메모</th><th>신청일</th><th></th></tr></thead>
+        <thead><tr><th>날짜</th><th>시간</th><th>방</th><th>이름</th><th>연락처</th><th>상태</th><th className="adm-grow">메모</th><th>신청일</th><th></th></tr></thead>
         <tbody>
           {rows.map(r => (
             <tr key={r.id} className={`st-${r.status}`}>
@@ -185,21 +185,19 @@ function Members({ onAuthFail, full }) {
       </div>
       {err && <p className="adm-error">{err}</p>}
       <table className="adm-table">
-        <thead><tr><th>신청일</th><th>이름</th><th>연락처</th><th>이메일</th><th>적은 밴드</th><th>팀</th><th>다음 출연</th><th>역할</th><th>리더</th><th>장르</th><th>지역</th><th>생년</th><th>소개</th><th>상태</th><th>메모</th><th>안내문</th><th></th></tr></thead>
+        <thead><tr><th>신청일</th><th>이름</th><th>연락처</th><th>적은 밴드</th><th>팀</th><th>리더</th><th>장르 · 지역</th><th className="adm-grow">소개</th><th>상태</th><th className="adm-grow">메모</th><th>안내문</th><th></th></tr></thead>
         <tbody>
           {rows.map(m => (
             <tr key={m.id} className={`st-${m.status}`}>
               <td data-label="신청일" className="adm-dim">{fmtDateTime(m.createdAt)}</td>
-              <td data-label="이름" className="adm-title">{m.name}</td>
-              <td data-label="연락처"><a href={`tel:${m.phone}`}>{m.phone}</a></td>
-              <td data-label="이메일"><a href={`mailto:${m.email}`}>{m.email}</a></td>
+              <td data-label="이름"><div className="adm-stack"><span className="adm-title">{m.name}</span><span className="adm-dim">{[m.role, m.birth].filter(Boolean).join(' · ')}</span></div></td>
+              <td data-label="연락처"><div className="adm-stack adm-contact"><a href={`tel:${m.phone}`}>{m.phone}</a><a href={`mailto:${m.email}`}>{m.email}</a></div></td>
               <td data-label="적은 밴드">{m.band}</td>
-              <td data-label="팀"><select value={m.teamId || ''} onChange={e => patch(m.id, { teamId: e.target.value })}>
-                <option value="">—</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></td>
-              <td data-label="다음 출연" className="adm-dim">{teamOf(m.teamId)?.next || ''}</td>
-              <td data-label="역할">{m.role}</td>
+              <td data-label="팀"><div className="adm-stack"><select value={m.teamId || ''} onChange={e => patch(m.id, { teamId: e.target.value })}>
+                <option value="">—</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+                {teamOf(m.teamId)?.next && <span className="adm-dim">다음 출연 {teamOf(m.teamId).next}</span>}</div></td>
               <td data-label="리더"><input type="checkbox" checked={!!m.leader} onChange={e => patch(m.id, { leader: e.target.checked ? 1 : 0 })} title="밴드 리더" /></td>
-              <td data-label="장르">{m.genre}</td><td data-label="지역">{m.location}</td><td data-label="생년">{m.birth}</td>
+              <td data-label="장르 · 지역"><div className="adm-stack"><span>{m.genre}</span><span className="adm-dim">{m.location}</span></div></td>
               <td data-label="소개" className="adm-intro">{m.intro}</td>
               <td data-label="상태"><select value={m.status} onChange={e => patch(m.id, { status: e.target.value })}>{MEMBER_STATUS.map(s => <option key={s}>{s}</option>)}</select></td>
               <td data-label="메모"><MemoInput value={m.memo} onSave={memo => patch(m.id, { memo })} /></td>
@@ -209,7 +207,7 @@ function Members({ onAuthFail, full }) {
               <td className="adm-act">{full && <button className="adm-del" onClick={() => remove(m.id)} title="삭제">✕</button>}</td>
             </tr>
           ))}
-          {rows.length === 0 && <tr><td colSpan={17} className="adm-empty">신청 없음</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={12} className="adm-empty">신청 없음</td></tr>}
         </tbody>
       </table>
     </>
@@ -246,7 +244,7 @@ function Teams({ onAuthFail }) {
       </form>
       {err && <p className="adm-error">{err}</p>}
       <table className="adm-table">
-        <thead><tr><th>팀</th><th>출연</th><th>지난 출연</th><th>다음 출연</th><th>멤버</th><th>소개 페이지</th><th>메모</th><th></th></tr></thead>
+        <thead><tr><th className="adm-grow">팀</th><th>출연</th><th>지난 출연</th><th>다음 출연</th><th className="adm-grow">멤버</th><th>소개 페이지</th><th className="adm-grow">메모</th><th></th></tr></thead>
         <tbody>
           {shown.map(t => (
             <tr key={t.id}>
@@ -254,13 +252,13 @@ function Teams({ onAuthFail }) {
               <td data-label="출연">{t.shows || ''}</td>
               <td data-label="지난 출연" className="adm-dim">{t.last || ''}</td>
               <td data-label="다음 출연">{t.next || ''}</td>
-              <td data-label="멤버">{t.members.map(m => m.leader ? `${m.name}(리더)` : m.name).join(', ')}</td>
-              <td data-label="소개 페이지">
+              <td data-label="멤버" className="adm-wrap">{t.members.map(m => m.leader ? `${m.name}(리더)` : m.name).join(', ')}</td>
+              <td data-label="소개 페이지"><div className="adm-actions">
                 {(t.intro || t.videos !== '[]') ? <a href={`/teams/${t.id}`} target="_blank" rel="noreferrer">보기</a> : <span className="adm-dim">비어 있음</span>}
-                {' '}<button className="adm-copy" onClick={() => copyKey(t, false)}>{copied === t.id ? '복사됨' : t.editKey ? '수정 링크 복사' : '수정 링크 만들기'}</button>
+                <button className="adm-copy" onClick={() => copyKey(t, false)}>{copied === t.id ? '복사됨' : t.editKey ? '수정 링크 복사' : '수정 링크 만들기'}</button>
                 {t.editKey && <button className="adm-copy" onClick={() => copyKey(t, true)} title="예전 링크를 못 쓰게 하고 새로 만듦">재발급</button>}
                 <label className="adm-dim"><input type="checkbox" checked={!!t.hidden} onChange={e => run(`/api/admin/teams/${t.id}`, 'PATCH', { hidden: e.target.checked ? 1 : 0 })} /> 숨김</label>
-              </td>
+              </div></td>
               <td data-label="메모"><MemoInput value={t.memo} onSave={memo => run(`/api/admin/teams/${t.id}`, 'PATCH', { memo })} /></td>
               <td className="adm-act"><button className="adm-del" onClick={() => remove(t)} title="삭제">✕</button></td>
             </tr>
@@ -297,20 +295,20 @@ function Events({ onAuthFail }) {
       {err && <p className="adm-error">{err}</p>}
       <datalist id="adm-team-names">{teams.map(t => <option key={t.id} value={t.name} />)}</datalist>
       <table className="adm-table">
-        <thead><tr><th>날짜</th><th>시간</th><th>제목</th><th>장소</th><th>라인업</th><th>비고</th><th></th></tr></thead>
+        <thead><tr><th>날짜</th><th>시간</th><th className="adm-grow-2">제목</th><th className="adm-grow">장소</th><th className="adm-grow-2">라인업</th><th className="adm-grow-2">비고</th><th></th></tr></thead>
         <tbody>
           {rows.map(ev => (
             <tr key={ev.id} className={ev.date < today ? 'adm-past' : ''}>
               <td data-label="날짜"><MemoInput type="date" value={ev.date} className="adm-name" onSave={edit(ev.id, 'date')} /></td>
               <td data-label="시간"><MemoInput value={ev.time} placeholder="시간" className="adm-short" onSave={edit(ev.id, 'time')} /></td>
               <td data-label="제목"><MemoInput value={ev.title} placeholder="제목" className="adm-name" onSave={edit(ev.id, 'title')} /></td>
-              <td data-label="장소"><MemoInput value={ev.place} placeholder="장소" className="adm-short" onSave={edit(ev.id, 'place')} /></td>
+              <td data-label="장소"><MemoInput value={ev.place} placeholder="장소" className="adm-name" onSave={edit(ev.id, 'place')} /></td>
               <td data-label="라인업" className="adm-lineup">
                 {ev.teams.map(t => (
                   <span key={t.id} className="adm-chip">{t.name}
                     <button onClick={() => run(`/api/admin/events/${ev.id}/teams/${t.id}`, 'DELETE')} title="라인업에서 빼기">✕</button></span>
                 ))}
-                <input list="adm-team-names" placeholder="팀 추가 (Enter)" className="adm-short"
+                <input list="adm-team-names" placeholder="팀 추가" title="이름 치고 Enter" className="adm-short"
                   onKeyDown={e => e.key === 'Enter' && addTeam(ev.id, e.target)} />
               </td>
               <td data-label="비고"><MemoInput value={ev.note} placeholder="비고" onSave={edit(ev.id, 'note')} /></td>
@@ -366,7 +364,7 @@ function Accounts({ me, onAuthFail }) {
         {err && <p className="adm-error">{err}</p>}
         <p className="adm-dim">대표관리자 = 전부 · 운영진 = 공연 편집 + 멤버·예약 열람(상태·메모·팀·리더만 수정, 삭제 불가) · 공연 담당 = 팀·공연만(개인정보 못 봄)</p>
         <table className="adm-table">
-          <thead><tr><th>아이디</th><th>이름</th><th>역할</th><th>사용</th><th>만든 날</th><th>비밀번호</th></tr></thead>
+          <thead><tr><th>아이디</th><th className="adm-grow">이름</th><th>역할</th><th>사용</th><th>만든 날</th><th>비밀번호</th></tr></thead>
           <tbody>
             {rows.map(a => (
               <tr key={a.id} className={a.active ? '' : 'adm-past'}>
@@ -403,7 +401,7 @@ function Admin() {
   useEffect(() => { loadMe(); }, [loadMe]);
 
   if (me === undefined) return null;
-  if (!me) return <Login onDone={loadMe} />;
+  if (!me) return <div className="adm"><Login onDone={loadMe} /></div>;
 
   const tabs = TABS.filter(([, , perm]) => !perm || me.perms.includes(perm));
   const cur = tabs.some(([k]) => k === tab) ? tab : tabs[0][0];
@@ -417,7 +415,8 @@ function Admin() {
         <nav>
           {tabs.map(([k, label]) => <button key={k} className={cur === k ? 'active' : ''} onClick={() => setTab(k)}>{label}</button>)}
         </nav>
-        <button className="adm-logout" onClick={logout} title={`${me.name} · ${me.roleLabel}`}>로그아웃</button>
+        <span className="adm-me">{me.name} · {me.roleLabel}</span>
+        <button className="adm-logout" onClick={logout}>로그아웃</button>
       </header>
       <main className="adm-main">
         {cur === 'resv' && <Reservations onAuthFail={onAuthFail} full={full} />}
