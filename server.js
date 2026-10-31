@@ -91,8 +91,11 @@ if (!db.prepare('PRAGMA table_info(admin_log)').all().some(c => c.name === 'admi
 // 2026-10-18·20 추가 열. 기존 DB엔 ALTER로 (CREATE IF NOT EXISTS는 열을 안 늘림)
 const memberCols = db.prepare('PRAGMA table_info(members)').all().map(c => c.name);
 if (!memberCols.includes('leader')) db.exec('ALTER TABLE members ADD COLUMN leader INTEGER NOT NULL DEFAULT 0');
-// 신청자가 적은 band(자유 글자)는 그대로 두고, 관리자가 실제 팀에 연결
+// 신청자가 적은 band(자유 글자)는 그대로 두고, 소속은 teamId 하나로만 본다(관리자 연결 또는 신청 때 이름 일치로 자동)
 if (!memberCols.includes('teamId')) db.exec('ALTER TABLE members ADD COLUMN teamId INTEGER REFERENCES teams(id) ON DELETE SET NULL');
+// 10-31: 아직 연결 안 된 멤버를 밴드 이름으로 팀에 붙임(공백·대소문자 무시). 기동마다 돌려도 됨 → 멤버보다 팀이 나중에 생겨도 다음 기동에 붙음
+const TEAM_BY_BAND = '(SELECT id FROM teams WHERE lower(trim(name)) = lower(trim(?)))';
+db.exec(`UPDATE members SET teamId = ${TEAM_BY_BAND.replace('?', 'members.band')} WHERE teamId IS NULL`);
 // 10-31: 팀 소개 페이지에 이름·역할 공개 동의(선택). 지금은 저장·관리자 표시만, 공개 페이지는 아직 안 씀. 기존 신청자는 0 = 동의 안 받음
 if (!memberCols.includes('publicOk')) db.exec('ALTER TABLE members ADD COLUMN publicOk INTEGER NOT NULL DEFAULT 0');
 // 팀 소개 페이지(2026-10-30). 팀이 수정 링크(editKey)로 직접 고치고 바로 공개, 관리자는 숨김만. 개인정보 칸은 두지 않음
@@ -312,13 +315,12 @@ app.get('/api/events', (req, res) => {
 });
 
 // 팀 소개 페이지. 숨긴 팀은 없는 것처럼 404. 출연 이력은 라인업에서
-// 멤버는 공개 동의(publicOk=1)한 사람만. 소속은 관리자 연결(teamId) 또는 신청서에 적은 밴드 이름이 팀 이름과 같으면 자동(10-31)
+// 멤버는 공개 동의(publicOk=1)한 사람만. 소속은 teamId(관리자 연결 또는 신청 때 밴드 이름 일치로 자동 채움)
 function publicTeam(id) {
   const t = db.prepare('SELECT id, name, genre, intro, videos, links FROM teams WHERE id = ? AND hidden = 0').get(id);
   if (!t) return null;
   t.videos = JSON.parse(t.videos); t.links = JSON.parse(t.links);
-  t.members = db.prepare(`SELECT name, role, leader FROM members WHERE publicOk = 1
-    AND (teamId = ? OR (teamId IS NULL AND lower(trim(band)) = lower(trim(?)))) ORDER BY leader DESC, name`).all(id, t.name);
+  t.members = db.prepare('SELECT name, role, leader FROM members WHERE publicOk = 1 AND teamId = ? ORDER BY leader DESC, name').all(id);
   t.events = db.prepare(`SELECT e.id, e.date, e.time, e.title, e.place FROM event_teams et JOIN events e ON e.id = et.eventId
     WHERE et.teamId = ? ORDER BY e.date DESC, e.time DESC`).all(id);
   return t;
@@ -385,8 +387,9 @@ app.post('/api/members', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
     return res.status(409).json({ error: '이미 같은 연락처로 신청된 내역이 있습니다.' });
   const leader = req.body.leader === true ? 1 : 0;
   const publicOk = req.body.publicOk === true ? 1 : 0;
-  const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro, leader, publicOk)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro, leader, publicOk);
+  // 밴드 이름이 기존 팀과 같으면 바로 소속(teamId). 관리자 화면·공개 페이지가 모두 이 열만 본다
+  const r = db.prepare(`INSERT INTO members (name, email, phone, band, role, location, birth, genre, intro, leader, publicOk, teamId)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${TEAM_BY_BAND})`).run(f.name, f.email, phone, f.band, f.role, f.location, f.birth, f.genre, f.intro, leader, publicOk, f.band);
   res.status(201).json({ success: true, id: Number(r.lastInsertRowid), band: INVITE.band }); // 완료 화면의 밴드 가입 링크(승인은 밴드에서)
   notify(`멤버 신청 #${r.lastInsertRowid} (역할: ${f.role || '미선택'}${leader ? ' · 밴드 리더' : ''})`);
 });

@@ -117,10 +117,14 @@ async function main() {
   const t = r.data.find(x => x.id === teamId);
   assert.equal(t.shows, 2); assert.equal(t.last, '2026-01-04'); assert.equal(t.next, '2099-11-08', '팀 출연 이력은 라인업에서 셈');
   assert.deepEqual(t.members.map(m => [m.name, m.publicOk]), [['홍길동', 1]], '팀에 연결된 멤버(공개 동의 포함)');
-  // 자동 소속: 신청서 밴드 이름이 팀 이름과 같고(공백·대소문자 무시) 동의한 사람만. 동의 없으면 이름이 맞아도 안 뜸
+  // 자동 소속: 신청서 밴드 이름이 팀 이름과 같으면(공백·대소문자 무시) 신청 때 teamId가 채워짐 → 관리자 팀 탭에 뜸. 공개 페이지는 그중 동의한 사람만
   assert.equal((await req('POST', '/api/members', { name: '임꺽정', email: 'l@gmail.com', phone: '010-9999-6666', band: ' 와락밴드 ', role: '베이스', publicOk: true, consent: true, age14: true }, false)).status, 201);
   assert.equal((await req('POST', '/api/members', { name: '비동의', email: 'n@gmail.com', phone: '010-9999-5555', band: '와락밴드', consent: true, age14: true }, false)).status, 201);
-  assert.deepEqual((await req('GET', `/api/teams/${teamId}`, null, false)).data.members, [{ name: '임꺽정', role: '베이스', leader: 0 }, { name: '홍길동', role: '', leader: 0 }], '공개 팀 페이지 멤버 = 동의 + (관리자 연결 또는 밴드 이름 일치)');
+  assert.equal((await req('POST', '/api/members', { name: '무소속', email: 'x@gmail.com', phone: '010-9999-4444', band: '없는밴드', consent: true, age14: true }, false)).status, 201);
+  r = await req('GET', '/api/admin/teams');
+  assert.deepEqual(r.data.find(x => x.id === teamId).members.map(m => m.name).sort(), ['비동의', '임꺽정', '홍길동'], '관리자 팀 탭 = 연결 + 밴드 이름 일치(동의 무관)');
+  assert.equal((await req('GET', '/api/admin/members?q=무소속')).data[0].teamId, null, '이름 안 맞으면 teamId 없음');
+  assert.deepEqual((await req('GET', `/api/teams/${teamId}`, null, false)).data.members, [{ name: '임꺽정', role: '베이스', leader: 0 }, { name: '홍길동', role: '', leader: 0 }], '공개 팀 페이지 멤버 = 소속 + 동의');
   const other = r.data.find(x => x.name === '청춘클럽').id;
   assert.equal((await req('PATCH', `/api/admin/teams/${other}`, { name: '와락밴드' })).status, 409, '팀 이름을 겹치게 바꾸면 409');
 
