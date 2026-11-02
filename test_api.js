@@ -4,17 +4,50 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const http = require('http');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kband-'));
 const PORT = 30000 + Math.floor(Math.random() * 20000);
 const BASE = `http://localhost:${PORT}`;
 const PW = 'test-pw';
 
+// 가짜 카카오: 인가 코드를 곧 회원번호로 씀. 시크릿·redirect_uri가 틀리면 실제처럼 거부
+const KAKAO_PORT = PORT + 1, KAKAO_URL = `http://localhost:${KAKAO_PORT}`, KAKAO_CB = `${BASE}/api/auth/kakao/callback`;
+const fakeKakao = http.createServer((q, s) => {
+  let body = '';
+  q.on('data', d => { body += d; });
+  q.on('end', () => {
+    if (q.url !== '/oauth/token') return s.end(`{"id":${q.headers.authorization.replace('Bearer ', '')}}`); // 큰 수를 그대로 내보내려고 글자로 조립
+    const f = new URLSearchParams(body);
+    if (f.get('client_secret') !== 'k-secret' || f.get('redirect_uri') !== KAKAO_CB || f.get('code') === 'bad') { s.statusCode = 400; return s.end('{}'); }
+    s.end(JSON.stringify({ access_token: f.get('code') }));
+  });
+}).listen(KAKAO_PORT);
+
 const srv = spawn(process.execPath, ['server.js'], {
   cwd: __dirname,
-  env: { ...process.env, PORT, DB_FILE: path.join(tmp, 't.db'), ADMIN_PASSWORD: PW, NODE_ENV: '', ROOM_NAMES: '{"3":"A","4":"B"}' },
+  env: { ...process.env, PORT, DB_FILE: path.join(tmp, 't.db'), ADMIN_PASSWORD: PW, NODE_ENV: '', ROOM_NAMES: '{"3":"A","4":"B"}',
+    KAKAO_REST_KEY: 'k-id', KAKAO_CLIENT_SECRET: 'k-secret', KAKAO_REDIRECT_URI: KAKAO_CB, KAKAO_AUTH_URL: KAKAO_URL, KAKAO_API_URL: KAKAO_URL, APP_ORIGIN: '' },
   stdio: ['ignore', 'pipe', 'inherit'],
 });
+
+// 팀장 로그인 한 바퀴. 돌아온 주소(to)와 세션 쿠키(jar). 쿠키는 공용 cookie와 따로 둠(관리자와 같이 시험)
+async function kakaoLogin(start, code, { denied, noCookie } = {}) {
+  const r = await fetch(`${BASE}/api/auth/kakao/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(start) });
+  assert.equal(r.status, 200, '카카오 로그인 시작');
+  const u = new URL((await r.json()).url), state = u.searchParams.get('state');
+  assert.equal(u.searchParams.get('client_id'), 'k-id');
+  assert.equal(u.searchParams.get('redirect_uri'), KAKAO_CB);
+  const cb = await fetch(`${KAKAO_CB}?${denied ? 'error=access_denied' : `code=${code}`}&state=${state}`, {
+    redirect: 'manual', headers: noCookie ? {} : { cookie: r.headers.get('set-cookie').split(';')[0] } });
+  assert.equal(cb.status, 302, '콜백은 항상 리다이렉트');
+  const sc = cb.headers.getSetCookie().find(c => c.startsWith('kband_team='));
+  return { to: cb.headers.get('location'), jar: sc && sc.split(';')[0] };
+}
+async function asTeam(jar, method, p, body) {
+  const res = await fetch(BASE + p, { method, headers: { 'Content-Type': 'application/json', ...(jar ? { cookie: jar } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  return { status: res.status, data: await res.json().catch(() => null) };
+}
 
 let cookie = '';
 async function req(method, p, body, auth = true) {
@@ -128,36 +161,90 @@ async function main() {
   const other = r.data.find(x => x.name === '청춘클럽').id;
   assert.equal((await req('PATCH', `/api/admin/teams/${other}`, { name: '와락밴드' })).status, 409, '팀 이름을 겹치게 바꾸면 409');
 
-  // 팀 소개: 수정 링크로 팀이 직접, 바로 공개, 관리자는 숨김·재발급
+  // 팀장 연결: 초대 링크 → 동의 → 카카오 로그인. 연결된 사람만 수정, 초대는 일회용
   r = await req('GET', '/api/events', null, false);
   assert.equal(r.data.find(e => e.id === future).teams.find(x => x.id === other).page, false, '빈 팀은 일정에서 링크 안 함');
-  const key1 = (await req('POST', `/api/admin/teams/${other}/key`)).data.editKey;
-  assert.match(key1, /^[a-f0-9]{32}$/, '수정 링크 발급');
-  assert.equal((await req('GET', `/api/team-edit/${key1}`, null, false)).data.name, '청춘클럽', '링크로 팀 열기(로그인 없이)');
-  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { videos: ['https://example.com/x'] }, false)).status, 400, '유튜브 아닌 주소 거부');
-  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { videos: Array.from({ length: 7 }, (_, i) => `https://youtu.be/aaaaaaaaaa${i}`) }, false)).status, 400, '영상 7개 거부');
-  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { links: ['https://www.youtube.com/@Chun-Ki-Noo-Sul', 'https://twitter.com/x'] }, false)).status, 400, '유튜브·인스타 아닌 링크 거부');
-  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { links: ['https://evil.com/?u=youtube.com'] }, false)).status, 400, '호스트 위장 거부');
-  assert.equal((await req('PUT', `/api/team-edit/${key1}`, { links: ['youtube.com/@a', 'youtube.com/@b', 'youtube.com/@c', 'youtube.com/@d', 'youtube.com/@e'] }, false)).status, 400, '링크 5개 거부');
-  r = await req('PUT', `/api/team-edit/${key1}`, { genre: '모던록', intro: '안녕하세요', videos: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10', 'https://youtu.be/dQw4w9WgXcQ', 'youtube.com/shorts/abcdefghijk', ''],
-    links: ['www.youtube.com/@Chun-Ki-Noo-Sul', 'http://instagram.com/eumjinin', 'https://www.youtube.com/@Chun-Ki-Noo-Sul', ''] }, false);
-  assert.equal(r.status, 200, '팀이 소개 저장');
+  assert.equal((await asTeam(null, 'GET', `/api/team-edit/${other}`)).status, 401, '로그인 없이 수정 화면 못 엶');
+  assert.equal((await asTeam(null, 'PUT', `/api/team-edit/${other}`, { intro: '낙서' })).status, 401, '로그인 없이 저장 못 함');
+  assert.equal((await asTeam(null, 'GET', `/api/team-edit/${'a'.repeat(32)}`)).status, 404, '예전 수정 링크 주소는 안내만');
+  assert.equal((await req('POST', `/api/admin/teams/${other}/managers`, {})).status, 400, '팀장 이름 필수');
+  assert.equal((await req('POST', '/api/admin/teams/99999/managers', { label: '김팀장' })).status, 404, '없는 팀 초대 거부');
+  const invite1 = (await req('POST', `/api/admin/teams/${other}/managers`, { label: '김팀장' })).data.inviteKey;
+  assert.match(invite1, /^[a-f0-9]{32}$/, '팀장 초대 발급');
+  assert.equal((await asTeam(null, 'GET', `/api/team-invite/${invite1}`)).data.name, '청춘클럽', '초대 링크로 팀 이름 확인');
+  assert.equal((await asTeam(null, 'POST', '/api/auth/kakao/start', { invite: 'f'.repeat(32), consent: true, age14: true })).status, 404, '없는 초대 거부');
+  assert.equal((await asTeam(null, 'POST', '/api/auth/kakao/start', { invite: invite1, age14: true })).status, 400, '초대 연결은 동의 필수');
+  assert.equal((await asTeam(null, 'POST', '/api/auth/kakao/start', { invite: invite1, consent: true })).status, 400, '초대 연결은 14세 확인 필수');
+  const consented = { invite: invite1, consent: true, age14: true };
+  let login = await kakaoLogin(consented, '111', { denied: true });
+  assert.equal(login.to, `/team-invite/${invite1}?login=fail`, '카카오에서 취소하면 초대 페이지로');
+  assert.ok(!login.jar, '취소하면 세션 없음');
+  login = await kakaoLogin(consented, 'bad');
+  assert.equal(login.to, `/team-invite/${invite1}?login=fail`, '토큰 거부 시 실패 안내');
+  login = await kakaoLogin(consented, '9007199254740993');
+  assert.ok(login.to.endsWith('?login=fail') && !login.jar, '정밀도를 넘는 회원번호는 로그인 거부');
+  login = await kakaoLogin(consented, '111', { noCookie: true });
+  assert.equal(login.to, '/', 'state 쿠키가 없으면 로그인 CSRF로 보고 거부');
+  assert.ok(!login.jar, 'state 불일치면 세션 없음');
+  assert.equal((await asTeam(null, 'GET', `/api/team-invite/${invite1}`)).status, 200, '실패한 시도로 초대가 소모되지 않음');
+  login = await kakaoLogin({ teamId: other }, '999');
+  assert.equal(login.to, `/teams/${other}?login=none`, '연결 안 된 계정은 팀 페이지로 돌려보냄');
+  assert.ok(!login.jar, '연결 안 된 계정엔 세션 없음');
+  login = await kakaoLogin(consented, '111');
+  assert.equal(login.to, `/team-edit/${other}`, '초대로 연결하면 수정 화면으로');
+  const lead = login.jar;
+  assert.ok(lead, '연결되면 세션 발급');
+  assert.equal((await asTeam(null, 'GET', `/api/team-invite/${invite1}`)).status, 404, '연결되면 초대 소멸');
+  assert.equal((await asTeam(null, 'POST', '/api/auth/kakao/start', consented)).status, 404, '쓴 초대로 다시 시작 못 함');
+  assert.deepEqual((await asTeam(lead, 'GET', '/api/team-session')).data.teams, [other], '세션이 자기 팀을 앎');
+  assert.deepEqual((await asTeam(null, 'GET', '/api/team-session')).data.teams, [], '방문자는 팀 없음');
+  assert.equal((await asTeam(lead, 'GET', `/api/team-edit/${teamId}`)).status, 403, '남의 팀은 못 엶');
+  assert.equal((await asTeam(lead, 'PUT', `/api/team-edit/${teamId}`, { intro: '낙서' })).status, 403, '남의 팀은 저장 못 함');
+  assert.equal((await asTeam(lead, 'GET', `/api/team-edit/${other}`)).data.name, '청춘클럽', '팀장이 자기 팀 열기');
+  login = await kakaoLogin({ teamId: other }, '111');
+  assert.equal(login.to, `/team-edit/${other}`, '다음부터는 로그인만으로 수정 화면');
+
+  // 팀 소개: 팀장이 직접, 바로 공개, 관리자는 숨김
+  assert.equal((await asTeam(lead, 'PUT', `/api/team-edit/${other}`, { videos: ['https://example.com/x'] })).status, 400, '유튜브 아닌 주소 거부');
+  assert.equal((await asTeam(lead, 'PUT', `/api/team-edit/${other}`, { videos: Array.from({ length: 7 }, (_, i) => `https://youtu.be/aaaaaaaaaa${i}`) })).status, 400, '영상 7개 거부');
+  assert.equal((await asTeam(lead, 'PUT', `/api/team-edit/${other}`, { links: ['https://www.youtube.com/@Chun-Ki-Noo-Sul', 'https://twitter.com/x'] })).status, 400, '유튜브·인스타 아닌 링크 거부');
+  assert.equal((await asTeam(lead, 'PUT', `/api/team-edit/${other}`, { links: ['https://evil.com/?u=youtube.com'] })).status, 400, '호스트 위장 거부');
+  assert.equal((await asTeam(lead, 'PUT', `/api/team-edit/${other}`, { links: ['youtube.com/@a', 'youtube.com/@b', 'youtube.com/@c', 'youtube.com/@d', 'youtube.com/@e'] })).status, 400, '링크 5개 거부');
+  r = await asTeam(lead, 'PUT', `/api/team-edit/${other}`, { genre: '모던록', intro: '안녕하세요', videos: ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10', 'https://youtu.be/dQw4w9WgXcQ', 'youtube.com/shorts/abcdefghijk', ''],
+    links: ['www.youtube.com/@Chun-Ki-Noo-Sul', 'http://instagram.com/eumjinin', 'https://www.youtube.com/@Chun-Ki-Noo-Sul', ''] });
+  assert.equal(r.status, 200, '팀장이 소개 저장');
   r = await req('GET', `/api/teams/${other}`, null, false);
   assert.deepEqual(r.data.videos, ['dQw4w9WgXcQ', 'abcdefghijk'], '유튜브 주소 → id, 중복 제거');
   assert.deepEqual(r.data.links, ['https://www.youtube.com/@Chun-Ki-Noo-Sul', 'https://instagram.com/eumjinin'], '채널·인스타 링크 https 정규화, 중복 제거');
-  assert.deepEqual((await req('GET', `/api/team-edit/${key1}`, null, false)).data.links, r.data.links, '수정 화면도 같은 링크 목록');
+  assert.ok(!('editedBy' in r.data), '공개 페이지에 수정자 없음');
+  assert.deepEqual((await asTeam(lead, 'GET', `/api/team-edit/${other}`)).data.links, r.data.links, '수정 화면도 같은 링크 목록');
   assert.equal(r.data.events.length, 1, '팀 페이지에 출연 이력');
+  r = await req('GET', '/api/admin/teams');
+  const edited = r.data.find(x => x.id === other);
+  assert.equal(edited.editedBy, '김팀장', '관리자에게 마지막 수정자');
+  assert.ok(edited.editedAt, '관리자에게 수정 시각');
+  assert.deepEqual(edited.managers.map(m => [m.label, m.linked]), [['김팀장', 1]], '관리자 팀 탭에 팀장 연결 상태');
+  assert.ok(!JSON.stringify(r.data).includes('kakaoId') && !('inviteKey' in edited.managers[0]), '회원번호·초대 키는 관리자 목록에도 안 나감');
   r = await req('GET', '/api/events', null, false);
   assert.equal(r.data.find(e => e.id === future).teams.find(x => x.id === other).page, true, '소개 채운 팀은 일정에서 링크');
   assert.equal((await fetch(`${BASE}/sitemap.xml`).then(x => x.text())).includes(`/teams/${other}`), true, '사이트맵에 팀 페이지');
   await req('PATCH', `/api/admin/teams/${other}`, { hidden: 1 });
   assert.equal((await req('GET', `/api/teams/${other}`, null, false)).status, 404, '숨긴 팀 페이지는 404');
   assert.equal((await req('GET', '/api/events', null, false)).data.find(e => e.id === future).teams.find(x => x.id === other).page, false, '숨긴 팀은 링크 안 함');
-  assert.equal((await req('GET', `/api/team-edit/${key1}`, null, false)).data.hidden, true, '팀은 숨김 상태를 봄');
+  assert.equal((await asTeam(lead, 'GET', `/api/team-edit/${other}`)).data.hidden, true, '팀장은 숨김 상태를 봄');
   await req('PATCH', `/api/admin/teams/${other}`, { hidden: 0 });
-  const key2 = (await req('POST', `/api/admin/teams/${other}/key`)).data.editKey;
-  assert.equal((await req('GET', `/api/team-edit/${key1}`, null, false)).status, 404, '재발급하면 예전 링크 무효');
-  assert.equal((await req('GET', `/api/team-edit/${key2}`, null, false)).status, 200, '새 링크는 됨');
+  // 연결 끊기 = 다음 요청부터 막힘, 다시 초대하면 됨. 이미 연결된 사람이 또 초대받아도 행이 겹치지 않음
+  const managerId = edited.managers[0].id;
+  assert.equal((await req('DELETE', `/api/admin/managers/${managerId}`)).status, 200, '팀장 연결 끊기');
+  assert.equal((await asTeam(lead, 'GET', `/api/team-edit/${other}`)).status, 403, '끊으면 세션이 있어도 바로 막힘');
+  assert.deepEqual((await asTeam(lead, 'GET', '/api/team-session')).data.teams, [], '끊으면 수정 버튼도 사라짐');
+  for (let i = 0; i < 2; i++) {
+    const key = (await req('POST', `/api/admin/teams/${other}/managers`, { label: '김팀장' })).data.inviteKey;
+    assert.equal((await kakaoLogin({ invite: key, consent: true, age14: true }, '111')).to, `/team-edit/${other}`, '다시 초대해서 연결');
+  }
+  assert.equal((await req('GET', '/api/admin/teams')).data.find(x => x.id === other).managers.length, 1, '같은 사람을 두 번 초대해도 한 줄');
+  assert.equal((await asTeam(lead, 'POST', '/api/team-session/logout')).status, 200);
+  assert.equal((await asTeam(lead, 'GET', `/api/team-edit/${other}`)).status, 401, '팀장 로그아웃 후 401');
   await req('DELETE', `/api/admin/teams/${teamId}`);
   r = await req('GET', '/api/events', null, false);
   assert.deepEqual(r.data.find(e => e.id === future).teams.map(t => t.name), ['청춘클럽'], '팀 삭제 시 라인업에서도 빠짐');
@@ -206,6 +293,8 @@ async function main() {
   await req('PATCH', `/api/admin/members/${memId}`, { teamId: other });
   r = await req('GET', '/api/admin/teams');
   assert.equal(r.status, 200); assert.ok(r.data.every(x => x.members.length === 0), '공연 담당에겐 팀 멤버 이름도 안 보냄');
+  assert.ok(r.data.every(x => x.managers.length === 0 && !x.editedBy), '공연 담당에겐 팀장 이름도 안 보냄');
+  assert.equal((await req('POST', `/api/admin/teams/${other}/managers`, { label: '몰래' })).status, 403, '공연 담당은 팀장 초대 못 함');
   assert.equal((await req('POST', '/api/admin/teams', { name: '새팀' })).status, 201, '공연 담당 팀 추가');
   const eventCookie = cookie;
 
@@ -240,6 +329,8 @@ async function main() {
     assert.equal((await page('/no-such-page')).status, 404, '없는 주소 404');
     assert.equal((await page('/spaces/1')).status, 404, '준비중 공간 404');
     assert.equal((await page('/admin')).robots, 'noindex', '관리자 화면 색인 금지');
+    assert.equal((await page(`/team-invite/${'a'.repeat(32)}`)).robots, 'noindex', '초대 링크 색인 금지');
+    assert.equal((await page(`/team-edit/${other}`)).robots, 'noindex', '팀 수정 화면 색인 금지');
   } else console.log('(build/ 없음 — 페이지 HTML 검사 건너뜀)');
 
   // 요청 제한
@@ -254,6 +345,10 @@ async function main() {
   assert.ok(logged.includes(200) && logged.includes(401) && logged.includes(429), '로그인 성공·실패·제한이 접속기록에 남음');
   const who = db.prepare(`SELECT a.username FROM admin_log l JOIN admins a ON a.id = l.adminId WHERE l.method = 'DELETE' AND l.status = 403`).all().map(x => x.username);
   assert.ok(who.includes('staff1'), '접속기록에 누가(계정) 남음');
+  assert.equal(db.prepare(`SELECT COUNT(*) AS n FROM team_managers WHERE kakaoId = '999'`).get().n, 0, '연결 안 된 카카오 계정의 번호는 저장 안 함');
+  // 쓰지 않은 초대는 7일 뒤 파기(서버 시작 시 확인), 예전 수정 링크 열·인덱스는 다음 기동에 제거
+  db.exec(`INSERT INTO team_managers (teamId, label, inviteKey, inviteUntil) VALUES (${other}, '옛초대', 'old', '2020-01-01T00:00:00.000Z');
+           ALTER TABLE teams ADD COLUMN editKey TEXT; CREATE UNIQUE INDEX teams_editKey ON teams(editKey);`);
 
   // 보유기간 자동 파기(서버 시작 시 실행): 1년 지난 미합류 신청·예약은 지우고, 합류 멤버는 남김
   db.exec(`INSERT INTO members (name, email, phone, status, createdAt) VALUES ('옛신청','o@x.com','010-0000-0001','보류','2020-01-01T00:00:00.000Z'), ('옛합류','o@x.com','010-0000-0002','합류','2020-01-01T00:00:00.000Z');
@@ -270,10 +365,13 @@ async function main() {
   srv2.kill();
   const names = db.prepare(`SELECT name FROM members WHERE name LIKE '옛%' UNION ALL SELECT name FROM reservations WHERE name LIKE '옛%'`).all().map(x => x.name);
   assert.deepEqual(names, ['옛합류'], '1년 지난 미합류 신청·예약 파기, 합류 멤버 유지');
+  assert.equal(db.prepare(`SELECT COUNT(*) AS n FROM team_managers WHERE label = '옛초대'`).get().n, 0, '만료된 초대 파기');
+  assert.ok(!db.prepare('PRAGMA table_info(teams)').all().some(c => c.name === 'editKey'), '기존 DB의 editKey 열 제거');
+  assert.equal(db.prepare(`SELECT intro FROM teams WHERE id = ${other}`).get().intro, '안녕하세요', '열을 지워도 팀 소개 유지');
   db.close();
 
   console.log('ALL OK');
 }
 
 main().catch(e => { console.error('FAIL:', e.message); process.exitCode = 1; })
-  .finally(() => { srv.kill(); setTimeout(() => fs.rmSync(tmp, { recursive: true, force: true }), 200); });
+  .finally(() => { srv.kill(); fakeKakao.close(); setTimeout(() => fs.rmSync(tmp, { recursive: true, force: true }), 200); });

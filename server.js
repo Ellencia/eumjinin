@@ -98,19 +98,36 @@ const TEAM_BY_BAND = '(SELECT id FROM teams WHERE lower(trim(name)) = lower(trim
 db.exec(`UPDATE members SET teamId = ${TEAM_BY_BAND.replace('?', 'members.band')} WHERE teamId IS NULL`);
 // 10-31: 팀 소개 페이지에 이름·역할 공개 동의(선택). 지금은 저장·관리자 표시만, 공개 페이지는 아직 안 씀. 기존 신청자는 0 = 동의 안 받음
 if (!memberCols.includes('publicOk')) db.exec('ALTER TABLE members ADD COLUMN publicOk INTEGER NOT NULL DEFAULT 0');
-// 팀 소개 페이지(2026-10-30). 팀이 수정 링크(editKey)로 직접 고치고 바로 공개, 관리자는 숨김만. 개인정보 칸은 두지 않음
+// 팀 소개 페이지(2026-10-30). 팀장이 직접 고치고 바로 공개, 관리자는 숨김만. 개인정보 칸은 두지 않음
 const teamCols = db.prepare('PRAGMA table_info(teams)').all().map(c => c.name);
 for (const [c, def] of [['genre', "TEXT NOT NULL DEFAULT ''"], ['intro', "TEXT NOT NULL DEFAULT ''"],
-  ['videos', "TEXT NOT NULL DEFAULT '[]'"], ['editKey', 'TEXT'], ['hidden', 'INTEGER NOT NULL DEFAULT 0'],
-  ['links', "TEXT NOT NULL DEFAULT '[]'"]]) // 10-31: 유튜브 채널·인스타그램 주소(팀 공개 계정, 허용 호스트만)
+  ['videos', "TEXT NOT NULL DEFAULT '[]'"], ['hidden', 'INTEGER NOT NULL DEFAULT 0'],
+  ['links', "TEXT NOT NULL DEFAULT '[]'"], // 10-31: 유튜브 채널·인스타그램 주소(팀 공개 계정, 허용 호스트만)
+  ['editedBy', 'TEXT'], ['editedAt', 'TEXT']]) // ponytail: 마지막 수정자만. 이력이 필요해지면 로그 테이블로
   if (!teamCols.includes(c)) db.exec(`ALTER TABLE teams ADD COLUMN ${c} ${def}`);
-db.exec('CREATE UNIQUE INDEX IF NOT EXISTS teams_editKey ON teams(editKey)');
+// 11-01: 수정 링크(editKey) 폐기. 전달받은 사람 누구나 편집자가 되고 누가 고쳤는지 안 남음 → 카카오 로그인 + 팀장 연결
+db.exec('DROP INDEX IF EXISTS teams_editKey');
+if (teamCols.includes('editKey')) db.exec('ALTER TABLE teams DROP COLUMN editKey');
+// 한 행 = 팀장 한 명. kakaoId NULL = 초대 대기, 연결되면 초대 키를 지움(일회용). label은 운영진이 적는 구분용 이름
+db.exec(`
+  CREATE TABLE IF NOT EXISTS team_managers (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    teamId      INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    label       TEXT NOT NULL,
+    kakaoId     TEXT,
+    inviteKey   TEXT UNIQUE,
+    inviteUntil TEXT,
+    createdAt   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS team_managers_kakao ON team_managers(teamId, kakaoId);
+`);
 
 // 보유기간 경과분 자동 파기(개인정보처리방침 3절과 같은 숫자). 합류한 멤버는 활동 종료·철회 때 관리자가 삭제
 function purgeExpired() {
   const m = db.prepare(`DELETE FROM members WHERE status != '합류' AND createdAt < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 year')`).run();
   const r = db.prepare(`DELETE FROM reservations WHERE date < date('now', '+9 hours', '-1 year')`).run();
   db.prepare(`DELETE FROM admin_log WHERE at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-2 years')`).run();
+  db.prepare(`DELETE FROM team_managers WHERE kakaoId IS NULL AND inviteUntil < strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`).run();
   if (m.changes || r.changes) console.log(`보유기간 경과 파기: 멤버 신청 ${m.changes}, 예약 ${r.changes}`);
 }
 purgeExpired();
@@ -246,8 +263,8 @@ if (!db.prepare('SELECT 1 FROM admins').get() && ADMIN_PASSWORD) {
 const IDLE_MS = 60 * 60 * 1000;
 const sessions = new Map();
 const COOKIE = 'kband_admin';
-function getToken(req) {
-  const m = (req.headers.cookie || '').match(new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]+)`));
+function getToken(req, name = COOKIE) {
+  const m = (req.headers.cookie || '').match(new RegExp(`(?:^|;\\s*)${name}=([a-f0-9]+)`));
   return m ? m[1] : null;
 }
 const dropSessions = adminId => { for (const [t, s] of sessions) if (s.adminId === adminId) sessions.delete(t); };
@@ -263,6 +280,48 @@ function requireAdmin(req, res, next) {
 }
 const need = perm => [requireAdmin, (req, res, next) =>
   can(req.admin, perm) ? next() : res.status(403).json({ error: '권한이 없습니다.' })];
+
+// 팀장 로그인(2026-11-01). 카카오 회원번호만 저장하고, 팀에 연결된 사람만 세션을 받음 → 연결 안 된 계정의 번호는 남지 않음
+const KAKAO = {
+  id: process.env.KAKAO_REST_KEY || '',
+  secret: process.env.KAKAO_CLIENT_SECRET || '',
+  redirect: process.env.KAKAO_REDIRECT_URI || 'https://kband.co.kr/api/auth/kakao/callback',
+  auth: process.env.KAKAO_AUTH_URL || 'https://kauth.kakao.com', // 시험 때만 바꿈
+  api: process.env.KAKAO_API_URL || 'https://kapi.kakao.com',
+};
+const APP_ORIGIN = process.env.APP_ORIGIN || ''; // 개발 서버가 API와 다른 포트일 때만
+const TEAM_COOKIE = 'kband_team', OAUTH_COOKIE = 'kband_oauth';
+const TEAM_IDLE_MS = 7 * 24 * 3600 * 1000, OAUTH_MS = 10 * 60 * 1000, INVITE_MS = 7 * 24 * 3600 * 1000;
+// ponytail: 관리자 세션처럼 메모리 Map. 재시작 = 다시 카카오 로그인(버튼 한 번), 팀장 수십 명이면 충분
+const teamSessions = new Map(); // 토큰 → {kakaoId, last}
+const oauthStates = new Map();  // state → {invite, teamId, at}
+const teamIdOf = s => /^\d+$/.test(s) ? Number(s) : 0;
+// 연결은 요청마다 DB에서 다시 확인 → 운영진이 끊으면 다음 요청부터 막힘
+function requireManager(req, res, next) {
+  const teamId = teamIdOf(req.params.id);
+  if (!teamId) return res.status(404).json({ error: '수정 링크는 없어졌습니다. 운영진에게 팀장 초대를 요청해주세요.' });
+  const s = teamSessions.get(getToken(req, TEAM_COOKIE));
+  if (!s || Date.now() - s.last >= TEAM_IDLE_MS) return res.status(401).json({ error: '팀장 로그인이 필요합니다.' });
+  s.last = Date.now();
+  req.manager = db.prepare('SELECT id, label FROM team_managers WHERE teamId = ? AND kakaoId = ?').get(teamId, s.kakaoId);
+  if (!req.manager) return res.status(403).json({ error: '이 팀의 팀장으로 연결돼 있지 않습니다. 운영진에게 초대를 요청해주세요.' });
+  req.team = db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+  next();
+}
+const inviteOf = key => /^[a-f0-9]{32}$/.test(key) && db.prepare(`SELECT m.id, m.teamId, t.name FROM team_managers m JOIN teams t ON t.id = m.teamId
+  WHERE m.inviteKey = ? AND m.inviteUntil > ?`).get(key, new Date().toISOString());
+async function fetchKakaoId(code) {
+  const signal = AbortSignal.timeout(8000);
+  const tok = await fetch(`${KAKAO.auth}/oauth/token`, { method: 'POST', signal, body: new URLSearchParams({
+    grant_type: 'authorization_code', client_id: KAKAO.id, redirect_uri: KAKAO.redirect, code, client_secret: KAKAO.secret }) });
+  if (!tok.ok) throw new Error(`kakao token ${tok.status}`);
+  const me = await fetch(`${KAKAO.api}/v2/user/me`, { signal, headers: { Authorization: `Bearer ${(await tok.json()).access_token}` } });
+  if (!me.ok) throw new Error(`kakao me ${me.status}`);
+  const { id } = await me.json();
+  // Long 타입. 2^53을 넘으면 JS 숫자에서 다른 사람 번호와 겹칠 수 있으므로 로그인 거부
+  if (!Number.isSafeInteger(id)) throw new Error('kakao id 범위 밖');
+  return String(id);
+}
 
 // ---------- app ----------
 const app = express();
@@ -330,22 +389,81 @@ app.get('/api/teams/:id', (req, res) => {
   t ? res.json(t) : res.status(404).json({ error: '없는 팀입니다.' });
 });
 
-// 팀이 수정 링크로 직접 고침. 로그인 대신 링크(관리자가 발급·재발급). 칸은 장르·소개·유튜브 영상·채널/인스타 주소만 → 개인정보를 받을 자리가 없음
+// 팀장 초대 링크 → 카카오 로그인 → 연결. 초대 링크는 동의를 받은 뒤에만 넘어감
+app.get('/api/team-invite/:key', (req, res) => {
+  const inv = inviteOf(req.params.key);
+  inv ? res.json({ name: inv.name }) : res.status(404).json({ error: '초대 링크가 만료됐거나 이미 사용됐습니다. 운영진에게 새 링크를 받아주세요.' });
+});
+app.post('/api/auth/kakao/start', rateLimit(30, 60 * 60 * 1000), (req, res) => {
+  if (!KAKAO.id) return res.status(503).json({ error: '카카오 로그인이 아직 설정되지 않았습니다.' });
+  const invite = req.body.invite ? String(req.body.invite) : null;
+  if (invite) {
+    if (!inviteOf(invite)) return res.status(404).json({ error: '초대 링크가 만료됐거나 이미 사용됐습니다.' });
+    if (req.body.consent !== true) return res.status(400).json({ error: CONSENT_MSG });
+    if (req.body.age14 !== true) return res.status(400).json({ error: AGE_MSG });
+  }
+  const now = Date.now(), state = crypto.randomBytes(16).toString('hex');
+  for (const [k, v] of oauthStates) if (now - v.at > OAUTH_MS) oauthStates.delete(k);
+  oauthStates.set(state, { invite, teamId: teamIdOf(String(req.body.teamId)), at: now });
+  res.cookie(OAUTH_COOKIE, state, { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: OAUTH_MS, path: '/api/auth' });
+  res.json({ url: `${KAKAO.auth}/oauth/authorize?${new URLSearchParams({ client_id: KAKAO.id, redirect_uri: KAKAO.redirect, response_type: 'code', state })}` });
+});
+app.get('/api/auth/kakao/callback', rateLimit(30, 60 * 60 * 1000), async (req, res) => {
+  const state = String(req.query.state || ''), entry = oauthStates.get(state);
+  oauthStates.delete(state);
+  res.clearCookie(OAUTH_COOKIE, { path: '/api/auth' });
+  const go = p => res.redirect(APP_ORIGIN + p);
+  // 쿠키 대조 = 다른 사람이 만든 로그인 응답을 내 브라우저에 밀어 넣는 것(로그인 CSRF) 차단
+  if (!entry || getToken(req, OAUTH_COOKIE) !== state || Date.now() - entry.at > OAUTH_MS) return go('/');
+  const back = entry.invite ? `/team-invite/${entry.invite}` : entry.teamId ? `/teams/${entry.teamId}` : '/';
+  if (!req.query.code) return go(`${back}?login=fail`); // 카카오 화면에서 취소
+  let kakaoId;
+  try { kakaoId = await fetchKakaoId(String(req.query.code)); }
+  catch (e) { console.error('kakao login:', e.message); return go(`${back}?login=fail`); }
+  let teamId = entry.teamId;
+  if (entry.invite) {
+    const inv = inviteOf(entry.invite);
+    if (!inv) return go(back); // 그 사이 다른 사람이 썼거나 만료. 초대 페이지가 안내
+    teamId = inv.teamId;
+    if (db.prepare('SELECT 1 FROM team_managers WHERE teamId = ? AND kakaoId = ?').get(teamId, kakaoId))
+      db.prepare('DELETE FROM team_managers WHERE id = ?').run(inv.id); // 이미 연결된 사람이 또 초대받음 → 초대만 지움
+    else {
+      db.prepare('UPDATE team_managers SET kakaoId = ?, inviteKey = NULL, inviteUntil = NULL WHERE id = ?').run(kakaoId, inv.id);
+      notify(`팀장 연결: ${inv.name}`); // 초대받은 본인이 아니면 운영진이 알아채고 끊음
+    }
+  }
+  const mine = db.prepare('SELECT teamId FROM team_managers WHERE kakaoId = ?').all(kakaoId).map(m => m.teamId);
+  if (!mine.length) return go(`${back}?login=none`);
+  const token = crypto.randomBytes(32).toString('hex');
+  teamSessions.set(token, { kakaoId, last: Date.now() });
+  res.cookie(TEAM_COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: TEAM_IDLE_MS });
+  go(mine.includes(teamId) ? `/team-edit/${teamId}` : `${back}?login=none`);
+});
+// 공개 팀 페이지가 "수정" 버튼을 띄울지 묻는 곳. 로그인 안 한 방문자에겐 쿠키를 만들지 않음
+app.get('/api/team-session', (req, res) => {
+  const s = teamSessions.get(getToken(req, TEAM_COOKIE));
+  if (!s || Date.now() - s.last >= TEAM_IDLE_MS) return res.json({ teams: [] });
+  res.json({ teams: db.prepare('SELECT teamId FROM team_managers WHERE kakaoId = ?').all(s.kakaoId).map(m => m.teamId) });
+});
+app.post('/api/team-session/logout', (req, res) => {
+  teamSessions.delete(getToken(req, TEAM_COOKIE));
+  res.clearCookie(TEAM_COOKIE);
+  res.json({ ok: true });
+});
+
+// 팀장이 직접 고침. 칸은 장르·소개·유튜브 영상·채널/인스타 주소만 → 개인정보를 받을 자리가 없음
 const MAX_VIDEOS = 6, MAX_LINKS = 4;
 // 외부 링크는 유튜브·인스타그램만. 다른 호스트는 거부(아무 주소나 받으면 공개 페이지가 광고판이 됨)
 const LINK_HOSTS = ['youtube.com', 'youtu.be', 'instagram.com'];
 const linkOf = u => { try { const x = new URL(/^https?:\/\//i.test(u) ? u : `https://${u}`); x.protocol = 'https:'; return LINK_HOSTS.includes(x.hostname.replace(/^(www|m)\./, '')) ? x.href : null; } catch { return null; } };
 // 유튜브 주소 → 영상 id(11자). watch?v= · youtu.be/ · shorts/ · live/ · embed/
 const ytId = u => (String(u).trim().match(/^(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([\w-]{11})(?![\w-])/) || [])[1];
-const teamByKey = key => /^[a-f0-9]{32}$/.test(key) && db.prepare('SELECT * FROM teams WHERE editKey = ?').get(key);
-app.get('/api/team-edit/:key', (req, res) => {
-  const t = teamByKey(req.params.key);
-  if (!t) return res.status(404).json({ error: '링크가 맞지 않습니다. 운영진에게 새 링크를 받아주세요.' });
+app.get('/api/team-edit/:id', requireManager, (req, res) => {
+  const t = req.team;
   res.json({ id: t.id, name: t.name, genre: t.genre, intro: t.intro, hidden: !!t.hidden, videos: JSON.parse(t.videos).map(id => `https://youtu.be/${id}`), links: JSON.parse(t.links) });
 });
-app.put('/api/team-edit/:key', rateLimit(30, 60 * 60 * 1000), (req, res) => {
-  const t = teamByKey(req.params.key);
-  if (!t) return res.status(404).json({ error: '링크가 맞지 않습니다. 운영진에게 새 링크를 받아주세요.' });
+app.put('/api/team-edit/:id', rateLimit(30, 60 * 60 * 1000), requireManager, (req, res) => {
+  const t = req.team;
   const genre = String(req.body.genre || '').trim().slice(0, 50);
   const intro = String(req.body.intro || '').trim().slice(0, 2000);
   const urls = (Array.isArray(req.body.videos) ? req.body.videos : []).map(u => String(u).trim()).filter(Boolean);
@@ -358,9 +476,10 @@ app.put('/api/team-edit/:key', rateLimit(30, 60 * 60 * 1000), (req, res) => {
   if (badLink) return res.status(400).json({ error: `유튜브·인스타그램 주소만 넣을 수 있습니다: ${badLink.slice(0, 100)}` });
   const links = [...new Set(linkUrls.map(linkOf))];
   if (links.length > MAX_LINKS) return res.status(400).json({ error: `링크는 ${MAX_LINKS}개까지입니다.` });
-  db.prepare('UPDATE teams SET genre = ?, intro = ?, videos = ?, links = ? WHERE id = ?').run(genre, intro, JSON.stringify(videos), JSON.stringify(links), t.id);
+  db.prepare('UPDATE teams SET genre = ?, intro = ?, videos = ?, links = ?, editedBy = ?, editedAt = ? WHERE id = ?')
+    .run(genre, intro, JSON.stringify(videos), JSON.stringify(links), req.manager.label, new Date().toISOString(), t.id);
   res.json({ ok: true });
-  notify(`팀 소개 수정: ${t.name}\nhttps://kband.co.kr/teams/${t.id}`); // 바로 공개라 운영진이 보고 이상하면 숨김
+  notify(`팀 소개 수정: ${t.name}\nhttps://kband.co.kr/teams/${t.id}`); // 바로 공개라 운영진이 보고 이상하면 숨김. 이름은 안 보냄(텔레그램에 남음), 누가는 관리자 팀 탭에서
 });
 
 // 30회: 공연장 와이파이처럼 한 IP를 여럿이 쓰는 현장 가입 대비. 장난은 이름·이메일 검사와 연락처 중복이 거름
@@ -551,7 +670,13 @@ app.get('/api/admin/teams', need('events'), (req, res) => {
     GROUP BY t.id ORDER BY t.name`).all(today, today);
   const mems = db.prepare('SELECT id, name, leader, publicOk, teamId FROM members WHERE teamId IS NOT NULL ORDER BY leader DESC, name').all();
   const showMembers = can(req.admin, 'people'); // 공연 담당에겐 멤버 이름도 안 보냄
-  for (const t of teams) t.members = showMembers ? mems.filter(m => m.teamId === t.id).map(({ id, name, leader, publicOk }) => ({ id, name, leader, publicOk })) : [];
+  // 팀장 이름도 개인정보 → 공연 담당에겐 안 보냄. 카카오 회원번호는 누구에게도 안 내보냄
+  const managers = db.prepare(`SELECT id, teamId, label, kakaoId IS NOT NULL AS linked FROM team_managers WHERE kakaoId IS NOT NULL OR inviteUntil > ? ORDER BY id`).all(new Date().toISOString());
+  for (const t of teams) {
+    t.members = showMembers ? mems.filter(m => m.teamId === t.id).map(({ id, name, leader, publicOk }) => ({ id, name, leader, publicOk })) : [];
+    t.managers = showMembers ? managers.filter(m => m.teamId === t.id) : [];
+    if (!showMembers) t.editedBy = null;
+  }
   res.json(teams);
 });
 // 이름으로 팀 찾기, 없으면 만들기 → id
@@ -566,11 +691,17 @@ app.post('/api/admin/teams', need('events'), (req, res) => {
   res.status(201).json({ id: teamIdByName(name) });
 });
 app.patch('/api/admin/teams/:id', need('events'), patchRoute('teams', ['name', 'memo', 'hidden']));
-// 수정 링크 발급·재발급. 새로 만들면 예전 링크는 바로 안 먹음(팀원이 바뀌었거나 링크가 샜을 때)
-app.post('/api/admin/teams/:id/key', need('events'), (req, res) => {
-  const editKey = crypto.randomBytes(16).toString('hex');
-  const r = db.prepare('UPDATE teams SET editKey = ? WHERE id = ?').run(editKey, parseInt(req.params.id));
-  r.changes ? res.json({ editKey }) : res.status(404).json({ error: '없는 팀입니다.' });
+// 팀장 초대(일회용, 7일). 링크는 만들 때 한 번만 돌려줌 → 잃어버리면 취소하고 새로 초대. 팀장이 바뀌면 연결을 지움(회원번호도 같이 파기)
+app.post('/api/admin/teams/:id/managers', need('people'), (req, res) => {
+  const teamId = parseInt(req.params.id), label = String(req.body.label || '').trim().slice(0, 50);
+  if (!label) return res.status(400).json({ error: '팀장 이름이 비었습니다.' });
+  if (!db.prepare('SELECT 1 FROM teams WHERE id = ?').get(teamId)) return res.status(404).json({ error: '없는 팀입니다.' });
+  const inviteKey = crypto.randomBytes(16).toString('hex');
+  db.prepare('INSERT INTO team_managers (teamId, label, inviteKey, inviteUntil) VALUES (?, ?, ?, ?)').run(teamId, label, inviteKey, new Date(Date.now() + INVITE_MS).toISOString());
+  res.status(201).json({ inviteKey });
+});
+app.delete('/api/admin/managers/:id', need('people'), (req, res) => {
+  db.prepare('DELETE FROM team_managers WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
 });
 app.delete('/api/admin/teams/:id', need('events'), (req, res) => {
   db.prepare('DELETE FROM teams WHERE id = ?').run(parseInt(req.params.id)); res.json({ ok: true });
@@ -638,7 +769,7 @@ if (fs.existsSync(BUILD_DIR)) {
     const key = req.path.replace(/\/+$/, '') || '/';
     if (key === '/admin' || key.startsWith('/admin/'))
       return res.set('X-Robots-Tag', 'noindex').type('html').send(tpl);
-    if (key.startsWith('/team-edit/')) // 수정 링크 = 비밀 주소. 색인 금지
+    if (key.startsWith('/team-edit/') || key.startsWith('/team-invite/')) // 초대 링크 = 비밀 주소, 수정 화면도 공개 페이지가 아님. 색인 금지
       return res.set('X-Robots-Tag', 'noindex').type('html').send(renderPage(tpl, key, { title: '팀 소개 수정', desc: '음진인 출연 팀 소개 수정' }));
     const tm = key.match(/^\/teams\/(\d+)$/);
     if (tm) { // 카톡·검색 미리보기에 팀 이름·소개

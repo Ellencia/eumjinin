@@ -15,7 +15,7 @@ import SpaceDetail from './pages/SpaceDetail';
 import InfoPage from './pages/InfoPage';
 import Privacy from './pages/Privacy';
 import Schedule from './pages/Schedule';
-import { TeamPage, TeamEdit } from './pages/Team';
+import { TeamPage, TeamEdit, TeamInvite } from './pages/Team';
 import Admin from './pages/Admin';
 import ScrollManager from './components/ScrollManager';
 import './App.css';
@@ -48,7 +48,7 @@ function NotFound() {
 // 탭 제목. 서버(server.js pageTitle)도 같은 규칙으로 첫 HTML에 넣음
 function pageTitle(path) {
   const k = path.replace(/\/+$/, '') || '/';
-  if (k.startsWith('/teams/') || k.startsWith('/team-edit/')) return null; // 팀 이름은 Team.js가 불러온 뒤 넣음
+  if (k.startsWith('/teams/') || k.startsWith('/team-edit/') || k.startsWith('/team-invite/')) return null; // 팀 이름은 Team.js가 불러온 뒤 넣음
   if (!PAGES[k]) return '페이지를 찾을 수 없습니다 — 음진인 협동조합';
   return k === '/' ? PAGES[k].title : `${PAGES[k].title} — 음진인 협동조합`;
 }
@@ -82,7 +82,8 @@ function Site() {
             <Route path="/projects/ongoing" element={<InfoPage />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/teams/:id" element={<TeamPage />} />
-            <Route path="/team-edit/:key" element={<TeamEdit />} />
+            <Route path="/team-edit/:id" element={<TeamEdit />} />
+            <Route path="/team-invite/:key" element={<TeamInvite />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1435,7 +1435,7 @@ main { padding-top: 64px; }
 .timeline-item p.schedule-lineup { color: #6d28d9; font-size: 0.95rem; }
 .timeline-item p.schedule-note { color: #6b7280; font-size: 0.9rem; }
 
-/* 팀 소개(/teams/:id)·팀 수정(/team-edit/:key) */
+/* 팀 소개(/teams/:id)·팀 수정(/team-edit/:id)·팀장 연결(/team-invite/:key) */
 .team-intro { white-space: pre-line; text-align: left; margin-top: 8px; }
 .team-members { max-width: 760px; margin: -20px auto 36px; color: #6b7280; font-size: 0.95rem; text-align: left; }
 /* 이름 + 채널 아이콘 한 줄. 아이콘은 브랜드색 동그라미(32px, 제목에 안 눌리게), 이름은 aria-label·title */
@@ -1448,12 +1448,17 @@ main { padding-top: 64px; }
 .team-links a.insta { background: linear-gradient(45deg, #f9ce34, #ee2a7b 55%, #6228d7); }
 .team-videos { max-width: 760px; margin: 0 auto 24px; display: grid; gap: 16px; }
 .team-videos iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 8px; background: #000; }
-.team-form { max-width: 640px; margin: 24px auto 0; display: flex; flex-direction: column; gap: 16px; }
+.team-form, .team-invite { max-width: 640px; margin: 24px auto 0; display: flex; flex-direction: column; gap: 16px; }
 .team-form label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; color: #374151; font-size: 0.92rem; }
 .team-form input, .team-form textarea { font: inherit; font-weight: 400; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; color: #111827; }
 .team-form button { align-self: flex-start; border: 0; cursor: pointer; }
 .team-warn { background: #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; line-height: 1.6; }
 .team-ok { color: #047857; }
+.team-manage { max-width: 640px; margin: 40px auto 0; text-align: center; }
+.team-actions { display: flex; align-items: center; gap: 16px; }
+.team-login { align-self: flex-start; border: 0; border-radius: 8px; padding: 10px 18px; background: #fee500; color: rgba(0,0,0,0.85); font: inherit; font-weight: 600; cursor: pointer; }
+.team-login:disabled { opacity: 0.45; cursor: not-allowed; }
+.team-form .team-logout { align-self: center; background: none; color: #6b7280; font: inherit; font-size: 0.9rem; text-decoration: underline; padding: 0; }
 
 /* ── FAQ Accordion ── */
 .faq-list {

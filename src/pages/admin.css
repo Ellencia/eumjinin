@@ -46,8 +46,8 @@
 .adm-stack > * { white-space: normal; overflow-wrap: anywhere; }
 .adm-stack .adm-dim { font-weight: 400; }
 /* 버튼·체크박스 묶음. 공간이 모자라면 묶음 단위로 꺾이고 글자는 안 꺾임 */
-/* 팀 탭 "소개 페이지" 칸: 상태 | 복사 | 재발급 | 숨김 을 고정 폭 격자로 → 행마다 버튼이 세로로 맞음. 링크 없는 팀은 재발급 자리만 비움 */
-.adm-actions { display: grid; grid-template-columns: 4.5em 9.5em 5em auto; align-items: center; gap: 6px; }
+/* 팀 탭 "소개 페이지" 칸: 상태 | 팀장 초대 | 숨김 을 고정 폭 격자로 → 행마다 버튼이 세로로 맞음. 공연 담당은 초대 자리만 비움 */
+.adm-actions { display: grid; grid-template-columns: 4.5em 6.5em auto; align-items: center; gap: 6px; }
 .adm-actions > * { white-space: nowrap; }
 .adm-actions > button:disabled { visibility: hidden; }
 .adm-dim { color: #999; font-size: 0.8rem; }

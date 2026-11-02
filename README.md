@@ -68,8 +68,14 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 | KAKAO_OPEN_URL | (없음) | 밴드 리더 오픈채팅 링크. 신청자가 "밴드 리더" 체크했을 때만 안내문에 추가 |
 | KAKAO_OPEN_CODE | (없음) | 오픈채팅 참여코드 |
 | ROOM_NAMES | `{}` | 예약 받는 연습실 `{"3":"연습실 A"}` (JSON 한 줄, src/data/spaces.js와 맞출 것). 비어 있으면 공개 예약 API가 전부 400 |
+| KAKAO_REST_KEY | (없음) | 카카오 로그인 REST API 키. 없으면 팀장 로그인이 503 |
+| KAKAO_CLIENT_SECRET | (없음) | 카카오 앱 클라이언트 시크릿 |
+| KAKAO_REDIRECT_URI | `https://kband.co.kr/api/auth/kakao/callback` | 카카오 앱에 등록한 리다이렉트 URI와 글자까지 같아야 함. 로컬은 dev.bat이 넣음 |
+| APP_ORIGIN | (없음) | 로그인 뒤 돌아갈 화면 주소. 개발 서버가 API와 포트가 다를 때만, 로컬은 dev.bat이 넣음 |
 
 합류 안내는 사이트가 보내지 않는다. 관리자가 /admin에서 "복사"를 눌러 문자·카톡으로 직접 보낸다(신청자 연락처가 외부 서비스에 남지 않게).
+
+카카오 앱 설정: developers.kakao.com에서 앱 생성 → 카카오 로그인 사용 설정 ON → 리다이렉트 URI에 운영 주소와 `http://localhost:8703/api/auth/kakao/callback` 등록 → REST API 키와 클라이언트 시크릿을 `.env`에 넣고 `systemctl restart kband`. 저장하는 값은 응답의 `id`(회원번호)뿐.
 
 텔레그램 설정: @BotFather에서 `/newbot` → 토큰. 그 봇에게 아무 메시지나 보낸 뒤 `https://api.telegram.org/bot<토큰>/getUpdates`의 `message.chat.id`가 채팅 id. 서버 `/srv/kband/.env`에 두 줄 추가 후 `systemctl restart kband`.
 
@@ -82,6 +88,7 @@ NODE_ENV=production npm run server     # 8703 하나로 사이트 + API + /admin
 - 자동 파기(서버 시작 시 + 매일): 합류 아닌 멤버 신청은 접수 1년, 예약은 이용일 1년, 관리자 접속기록은 2년 지나면 삭제. `PRAGMA secure_delete`로 지운 자리를 덮어씀
 - 관리자 세션: 60분 요청이 없으면 만료
 - 운영진 계정(`admins`, /admin "계정" 탭): 역할 3단계 — 대표관리자(전부), 운영진(공연 편집 + 멤버·예약 열람, 상태·메모·팀·리더만 수정, 삭제 불가), 공연 담당(팀·공연만, 개인정보 못 봄). 역할 정의는 `server.js` `ROLES`. 계정은 지우지 않고 끔(끄면 즉시 로그아웃). 운영진 비밀번호 분실 = 대표관리자가 계정 탭에서 초기화. 대표관리자가 모두 잊었으면 서버에서 `runuser -u kband -- node /srv/kband/reset_admin.js <아이디>`(임의 비밀번호 출력, 꺼진 계정은 다시 켬, 아이디 없이 실행하면 목록)
+- 팀장 연결(`team_managers`, /admin 팀 탭): 초대 일회용·7일, 미사용 초대 자동 파기, 카카오 회원번호는 연결된 사람 것만 저장, 연결을 끊으면 행째 삭제. 팀장 세션은 7일 미사용 시 만료. 초대·이름 열람은 `people` 권한(공연 담당 제외)
 - 관리자 접속기록 `admin_log`(로그인 시도 포함, `adminId` = 누가. 2026-10-30 이전 기록은 NULL). 월 1회 점검:
   `ssh root@158.247.204.136 "sqlite3 /srv/kband/data/kband.db \"SELECT l.at, a.username, l.ip, l.method, l.path, l.status FROM admin_log l LEFT JOIN admins a ON a.id = l.adminId WHERE l.at > datetime('now','-1 month') ORDER BY l.at\""`
 - 전송량(월 한도 대비): 서버에 vnstat(2026-10-25 설치, 그 이후분만 집계). 월별은 `ssh root@158.247.204.136 vnstat -m`, 최근 30일 일별은 `vnstat -d`. tx가 방문자에게 나간 양. 공식 사용량·한도는 Vultr 콘솔 인스턴스 > Usage Graphs

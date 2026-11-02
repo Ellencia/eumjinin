@@ -4,6 +4,9 @@ rem 0.0.0.0 바인딩이지만 방화벽 'Tailscale-In' 규칙(Private=Tailscale
 cd /d "%~dp0"
 rem 운영은 서버 .env. 로컬은 여기서(셸 변수가 .env보다 우선). 비밀 아님
 set BAND_INVITE_URL=https://band.us/band/86120486
+rem 카카오 로그인 키는 .env. 콜백은 API로 바로 받고, 끝나면 개발 서버로 돌려보냄(쿠키는 포트를 안 가림)
+set KAKAO_REDIRECT_URI=http://localhost:8703/api/auth/kakao/callback
+set APP_ORIGIN=http://localhost:8706
 start "kband api :8703" cmd /k npm run server
 set PORT=8706
 set HOST=0.0.0.0
