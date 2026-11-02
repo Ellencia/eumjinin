@@ -26,7 +26,8 @@ Node 22.13 이상 필요.
 **다음**
 1. 팀장 로그인 배포: 운영 `.env`에 키 투입(아래 "카카오 앱 설정"), `Privacy.js` 시행일과 `PREVIOUS` 적용 기간을 배포일로 고친 뒤 배포, 운영에서 카카오 로그인·초대 확인
 2. 운영진 계정 발급, 대표관리자 1명 더 두기(관리자 화면 계정 탭)
-3. 소속 팀 탭을 열 때 `GET /api/teams` 추가 후 `InfoPage.js` `/community/teams` 항목을 목록 페이지로 교체(시점 미정)
+3. 처리방침 대조: 호별 요건 대응표와 검사 스크립트를 이 저장소에 만든다. 입력은 `Projects/law_collect/data/privacy/`(`collect_privacy.py`, 같은 PC에서만 읽힘), LLM 없이. 검사 통과가 적법을 뜻하지는 않는다
+4. 소속 팀 탭을 열 때 `GET /api/teams` 추가 후 `InfoPage.js` `/community/teams` 항목을 목록 페이지로 교체(시점 미정)
 
 **하면 안 되는 것**
 - 처리방침과 맞물린 동작(파기 기간·세션 60분·역할·접속기록·팀 소개 페이지 항목·팀장 연결)을 `Privacy.js` 수정 없이 바꾸기. 이전 방침은 `PREVIOUS`로 옮긴다
