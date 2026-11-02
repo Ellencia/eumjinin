@@ -225,7 +225,8 @@ function Teams({ onAuthFail, canInvite }) {
   const [copied, setCopied] = useState(0);
   // 팀장 초대: 일회용 링크는 지금 한 번만 받음. 복사가 막힌 환경(http 등)이면 직접 복사하게 띄움
   const invite = async t => {
-    const label = window.prompt(`'${t.name}' 팀장 이름 (운영진 구분용, 공개 안 됨)`);
+    // 이 값은 팀장 동의 전에 저장되므로 실명 대신 호칭을 먼저 권함
+    const label = window.prompt(`'${t.name}' 팀장 호칭 (운영진 구분용, 공개 안 됨)\n실명 대신 호칭을 적어주세요.`, `${t.name} 팀장`);
     if (!label?.trim()) return;
     try {
       const { inviteKey } = await api(`/api/admin/teams/${t.id}/managers`, { method: 'POST', body: JSON.stringify({ label }) });

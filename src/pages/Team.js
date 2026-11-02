@@ -116,7 +116,8 @@ export function TeamInvite() {
             <ConsentCheck checked={consent} onChange={setConsent}
               items="카카오 회원번호, 운영진이 입력한 이름 또는 호칭"
               purpose="팀 소개 페이지 수정 권한 확인"
-              retention="팀장 연결 해제 또는 팀 삭제 시까지" />
+              retention="팀장 연결 해제 또는 팀 삭제 시까지"
+              refusal="팀장으로 연결할 수 없습니다" />
             {err && <p className="form-error">{err}</p>}
             <button className="team-login" disabled={!age14 || !consent}
               onClick={() => { setErr(''); kakaoLogin({ invite: key, consent, age14 }, setErr); }}>카카오로 연결</button>
